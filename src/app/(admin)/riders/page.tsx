@@ -143,9 +143,21 @@ export default function RiderList() {
                       {rider.totalDeliveries}
                     </TableCell>
                     <TableCell className="px-5 py-4 text-end">
-                      <button className="text-brand-500 hover:text-brand-600 text-sm font-medium">
-                        Edit
-                      </button>
+                      <div className="flex items-center justify-end gap-3">
+                        <button
+                          title={`Edit ${rider.name}`}
+                          className="text-brand-500 hover:text-brand-600 text-sm font-medium"
+                        >
+                          Edit
+                        </button>
+                        <Link
+                          href={`/riders/${rider.id}/report`}
+                          title={`View report for ${rider.name}`}
+                          className="inline-flex items-center justify-center rounded-lg bg-brand-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-600"
+                        >
+                          Report
+                        </Link>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
