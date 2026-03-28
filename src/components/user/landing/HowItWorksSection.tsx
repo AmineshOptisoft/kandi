@@ -5,7 +5,7 @@ export default function HowItWorksSection() {
   return (
     <section className="space-y-4">
       <div className="flex items-end justify-between">
-        <h2 className="text-2xl font-bold text-gray-800 dark:text-white/90">How Kandi Works</h2>
+        <h2 className="text-2xl font-bold text-gray-800 dark:text-white/90">How Kadi Works</h2>
         <p className="text-sm text-gray-500 dark:text-gray-400">Simple 3-step flow</p>
       </div>
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">

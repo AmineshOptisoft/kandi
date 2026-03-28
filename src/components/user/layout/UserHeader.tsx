@@ -5,13 +5,16 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { BellIcon, UserCircleIcon } from "@/icons";
 import UserAuthModal from "./UserAuthModal";
+import { UserContext } from "@/app/(user)/user/layout";
+import { useContext } from "react";
 
 export default function UserHeader() {
   const pathname = usePathname();
+  const { user: activeUser } = useContext(UserContext) as any;
   const [authMode, setAuthMode] = useState<"login" | "signup">("login");
   const [open, setOpen] = useState(false);
-  const showAuthButtons = pathname === "/" || pathname === "/user";
-  const showUserIcon = pathname !== "/user";
+  const showAuthButtons = (pathname === "/" || pathname === "/user") && !activeUser;
+  const showUserIcon = pathname !== "/user" || activeUser;
 
   const openModal = (mode: "login" | "signup") => {
     setAuthMode(mode);
@@ -23,10 +26,16 @@ export default function UserHeader() {
       <header className="sticky top-0 z-40 border-b border-gray-200 bg-white/95 backdrop-blur dark:border-gray-800 dark:bg-gray-900/90">
         <div className="mx-auto flex w-full max-w-(--breakpoint-2xl) items-center justify-between px-4 py-3 md:px-6">
           <Link href="/user" className="text-2xl font-bold text-brand-600">
-            Kandi
+            Kadi
           </Link>
 
           <nav className="hidden items-center gap-5 md:flex">
+            <Link
+              href="/user/book-ride"
+              className="text-sm font-medium text-brand-600 hover:text-brand-700 dark:text-brand-400 font-bold"
+            >
+              Book a Ride
+            </Link>
             <Link
               href="/user/orders"
               className="text-sm font-medium text-gray-600 hover:text-brand-600 dark:text-gray-300"
@@ -71,10 +80,19 @@ export default function UserHeader() {
             >
               <BellIcon />
             </Link>
+            {activeUser ? (
+              <div className="flex items-center gap-2 pr-2 border-r border-gray-100 dark:border-gray-800 mr-1">
+                <div className="text-right hidden sm:block">
+                  <p className="text-xs font-bold text-gray-800 dark:text-gray-100">{activeUser.firstName}</p>
+                  <p className="text-[10px] text-brand-600 font-medium">Customer</p>
+                </div>
+              </div>
+            ) : null}
+
             {showUserIcon ? (
               <Link
                 href="/user/profile"
-                className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/[0.05]"
+                className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/[0.05] transition-colors"
                 title="Profile"
               >
                 <UserCircleIcon />

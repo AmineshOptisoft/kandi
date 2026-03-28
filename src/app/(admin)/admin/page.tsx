@@ -7,8 +7,8 @@ import StatisticsChart from "@/components/ecommerce/StatisticsChart";
 import RecentOrders from "@/components/ecommerce/RecentOrders";
 
 export const metadata: Metadata = {
-  title: "Kandi | E-bike Delivery Admin Panel",
-  description: "Dashboard for Kandi E-bike Delivery Management System",
+  title: "Kadi | E-bike Delivery Admin Panel",
+  description: "Dashboard for Kadi E-bike Delivery Management System",
 };
 
 export default function AdminDashboard() {

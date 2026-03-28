@@ -1,51 +1,55 @@
-import React from "react";
-import { getCurrentOrder } from "@/data/user/orders";
-import OrderTimeline from "@/components/user/orders/OrderTimeline";
+"use client";
 
-export default function UserTrackPage() {
-  const currentOrder = getCurrentOrder();
+import { useEffect, useContext, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { UserContext } from "../layout";
+
+function TrackingRedirectController() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const context = useContext(UserContext) as any;
+  const activeUser = context?.user;
+  const queryOrderId = searchParams.get("orderId");
+
+  useEffect(() => {
+    // 1. If we have a direct orderId in query, go there
+    if (queryOrderId) {
+      router.replace(`/user/track/${queryOrderId}`);
+      return;
+    }
+
+    // 2. If no queryOrderId, find most recent active trip for the user
+    if (activeUser) {
+      fetch(`/api/orders?customerId=${activeUser.id}`)
+        .then(res => res.json())
+        .then(data => {
+          if (Array.isArray(data)) {
+            const ongoing = data.find(o => ["Pending", "Accepted", "Started", "Picked Up"].includes(o.status));
+            if (ongoing) {
+              router.replace(`/user/track/${ongoing.id}`);
+            } else {
+              // No ongoing ride, take back to orders
+              router.replace("/user/orders");
+            }
+          }
+        })
+        .catch(() => router.replace("/user/orders"));
+    }
+  }, [queryOrderId, activeUser, router]);
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-gray-800 dark:text-white/90">Track Order</h2>
-        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          Live order status and rider details.
-        </p>
-      </div>
-
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] lg:col-span-2">
-          <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
-            Live Map (Placeholder)
-          </h3>
-          <div className="mt-4 flex h-[320px] items-center justify-center rounded-lg border border-dashed border-gray-300 bg-gray-50 text-sm text-gray-500 dark:border-gray-700 dark:bg-gray-800/30 dark:text-gray-400">
-            Map integration will be added in API phase.
-          </div>
-        </div>
-        <div className="space-y-6">
-          <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
-            <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
-              Current Progress
-            </h3>
-            <div className="mt-4">
-              <OrderTimeline status={currentOrder.status} />
-            </div>
-          </div>
-          <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
-            <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">Rider</h3>
-            <p className="mt-2 text-sm text-gray-700 dark:text-gray-300">
-              {currentOrder.rider.name}
-            </p>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              {currentOrder.rider.phone}
-            </p>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              Vehicle: {currentOrder.rider.vehicleCode}
-            </p>
-          </div>
-        </div>
-      </div>
+    <div className="min-h-[400px] flex flex-col items-center justify-center p-10 text-center">
+       <div className="h-12 w-12 border-4 border-brand-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+       <p className="text-lg font-bold text-gray-800 dark:text-white">🛰️ Connecting to Satellite Tracking...</p>
+       <p className="text-sm text-gray-400 mt-2 italic">Please wait while we establish a secure link to your rider.</p>
     </div>
+  );
+}
+
+export default function UserTrackFallbackPage() {
+  return (
+    <Suspense fallback={<div>Loading mapping system...</div>}>
+      <TrackingRedirectController />
+    </Suspense>
   );
 }

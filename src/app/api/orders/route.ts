@@ -1,9 +1,16 @@
 import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const { searchParams } = new URL(request.url)
+    const customerId = searchParams.get('customerId')
+
+    const where: any = {}
+    if (customerId) where.customerId = parseInt(customerId)
+
     const orders = await prisma.order.findMany({
+      where,
       include: {
         customer: true,
         rider: true,

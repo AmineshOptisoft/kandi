@@ -1,12 +1,31 @@
-import React from "react";
+"use client";
+
+import React, { useContext } from "react";
 import Link from "next/link";
 import HeroSection from "@/components/user/landing/HeroSection";
 import HowItWorksSection from "@/components/user/landing/HowItWorksSection";
 import FeaturesSection from "@/components/user/landing/FeaturesSection";
+import { UserContext } from "./layout";
 
 export default function UserLandingPage() {
+  const { user: activeUser } = useContext(UserContext) as any;
+
   return (
     <div className="space-y-10">
+      {activeUser && (
+        <div className="p-4 bg-brand-500 rounded-2xl text-white flex items-center justify-between shadow-lg">
+           <div className="flex items-center gap-3">
+              <div className="h-12 w-12 rounded-full bg-white/20 flex items-center justify-center text-2xl font-bold">😊</div>
+              <div>
+                <h2 className="text-xl font-bold">Hello, {activeUser.firstName}!</h2>
+                <p className="text-sm opacity-80">Welcome back to Kadi EV Fleet.</p>
+              </div>
+           </div>
+           <Link href="/user/orders" className="bg-white/20 hover:bg-white/40 px-4 py-2 rounded-xl text-sm font-bold transition-all">
+              View My Orders
+           </Link>
+        </div>
+      )}
       <HeroSection />
       <HowItWorksSection />
       <FeaturesSection />

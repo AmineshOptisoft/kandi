@@ -1,34 +1,61 @@
-import React from "react";
+"use client";
+
+import React, { useState, useEffect, useContext } from "react";
 import Link from "next/link";
-import { getCurrentOrder } from "@/data/user/orders";
 import OrderStatusBadge from "./OrderStatusBadge";
+import { UserContext } from "@/app/(user)/user/layout";
 
 export default function CurrentOrderBanner() {
-  const order = getCurrentOrder();
+  const context = useContext(UserContext) as any;
+  const activeUser = context?.user;
+  const [currentOrder, setCurrentOrder] = useState<any>(null);
 
-  if (!order) return null;
+  useEffect(() => {
+    if (!activeUser) {
+      setCurrentOrder(null);
+      return;
+    }
+
+    // Fetch most recent pending/started order
+    fetch(`/api/orders?customerId=${activeUser.id}`)
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          const ongoing = data.find(o => ["Pending", "Accepted", "Started", "Picked Up", "Out for Delivery"].includes(o.status));
+          setCurrentOrder(ongoing || null);
+        }
+      })
+      .catch(e => console.error(e));
+  }, [activeUser]);
+
+  if (!currentOrder) return null;
 
   return (
-    <div className="mb-6 rounded-xl border border-brand-100 bg-brand-50 p-4 dark:border-brand-500/20 dark:bg-brand-500/10">
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div>
-          <p className="text-xs font-medium uppercase tracking-wide text-brand-600">
-            Current Order
-          </p>
-          <p className="mt-1 text-sm font-semibold text-gray-800 dark:text-white/90">
-            {order.id} · ETA: {order.eta}
-          </p>
-          <p className="text-sm text-gray-600 dark:text-gray-300">
-            {order.deliveryAddress}
-          </p>
+    <div className="mb-6 rounded-2xl border border-brand-200 bg-brand-50 p-5 shadow-sm dark:border-brand-500/20 dark:bg-brand-500/10 transition-all hover:bg-brand-100/50">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="flex items-start gap-3">
+          <div className="h-10 w-10 rounded-full bg-brand-500 flex items-center justify-center text-white text-xl shadow-md">
+             🛵
+          </div>
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-brand-600 mb-0.5">
+              Current Ride Request
+            </p>
+            <p className="text-base font-bold text-gray-800 dark:text-white">
+              #ORD-{currentOrder.id.toString().padStart(3, "0")} · OTP: {currentOrder.otp}
+            </p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Pick: {currentOrder.pickupLoc || "Current Location"}
+            </p>
+          </div>
         </div>
-        <div className="flex items-center gap-3">
-          <OrderStatusBadge status={order.status} />
+        <div className="flex items-center gap-3 self-end md:self-center">
+          <OrderStatusBadge status={currentOrder.status} />
           <Link
-            href={`/user/track?orderId=${order.id}`}
-            className="rounded-lg bg-brand-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-600"
+            href={`/user/track/${currentOrder.id}`}
+            className="rounded-xl border border-brand-500 bg-white px-4 py-2 text-sm font-bold text-brand-500 hover:bg-brand-500 hover:text-white transition-all shadow-sm"
           >
-            Track Now
+            Track on Map
           </Link>
         </div>
       </div>

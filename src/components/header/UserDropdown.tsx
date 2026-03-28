@@ -62,7 +62,7 @@ export default function UserDropdown() {
             Kariuki gachoki
           </span>
           <span className="mt-0.5 block text-theme-xs text-gray-500 dark:text-gray-400">
-            admin@kandi.com
+            admin@Kadi.com
           </span>
         </div>
 

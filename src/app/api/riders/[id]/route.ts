@@ -39,6 +39,10 @@ export async function PUT(
     if (nid !== undefined) data.nid = nid
     if (status !== undefined) data.status = status
     if (password) data.password = await bcrypt.hash(password, 10)
+    // Admin vehicle assignment
+    if ('assignedVehicleId' in body) {
+      data.assignedVehicleId = body.assignedVehicleId ? parseInt(body.assignedVehicleId) : null
+    }
 
     const rider = await prisma.rider.update({ where: { id }, data })
     return NextResponse.json(rider)

@@ -88,11 +88,11 @@ const AppHeader: React.FC = () => {
               <Image
                 width={32}
                 height={32}
-                src="/images/logo/kandi-logo.png"
+                src="/images/logo/Kadi-logo.png"
                 alt="Logo"
                 className="rounded-lg"
               />
-              <span className="text-xl font-bold text-gray-900 dark:text-white">Kandi</span>
+              <span className="text-xl font-bold text-gray-900 dark:text-white">Kadi</span>
             </div>
           </Link>
 

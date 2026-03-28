@@ -282,17 +282,17 @@ const AppSidebar: React.FC = () => {
           {isExpanded || isHovered || isMobileOpen ? (
             <div className="flex items-center gap-3">
               <Image
-                src="/images/logo/kandi-logo.png"
+                src="/images/logo/Kadi-logo.png"
                 alt="Logo"
                 width={40}
                 height={40}
                 className="rounded-lg"
               />
-              <span className="text-2xl font-bold text-gray-900 dark:text-white">Kandi</span>
+              <span className="text-2xl font-bold text-gray-900 dark:text-white">Kadi</span>
             </div>
           ) : (
             <Image
-              src="/images/logo/kandi-logo.png"
+              src="/images/logo/Kadi-logo.png"
               alt="Logo"
               width={32}
               height={32}

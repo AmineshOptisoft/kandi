@@ -5,6 +5,7 @@ import AppHeader from "@/layout/AppHeader";
 import AppSidebar from "@/layout/AppSidebar";
 import Backdrop from "@/layout/Backdrop";
 import React from "react";
+import GlobalNotificationListener from "@/components/common/GlobalNotificationListener";
 
 export default function AdminLayout({
   children,
@@ -33,6 +34,7 @@ export default function AdminLayout({
         <AppHeader />
         {/* Page Content */}
         <div className="p-4 mx-auto max-w-(--breakpoint-2xl) md:p-6">{children}</div>
+        <GlobalNotificationListener />
       </div>
     </div>
   );

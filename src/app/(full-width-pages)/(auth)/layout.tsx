@@ -25,12 +25,12 @@ export default function AuthLayout({
                   <Image
                     width={150}
                     height={40}
-                    src="/images/logo/kandi-logo.png"
+                    src="/images/logo/Kadi-logo.png"
                     alt="Logo"
                   />
                 </Link>
                 <p className="text-center text-gray-400 dark:text-white/60">
-                  Kandi E-bike Delivery Management System
+                  Kadi E-bike Delivery Management System
                 </p>
               </div>
             </div>

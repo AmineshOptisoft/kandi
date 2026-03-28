@@ -1,3 +1,5 @@
+"use client";
+import React, { useEffect, useState } from "react";
 import {
   Table,
   TableBody,
@@ -6,168 +8,101 @@ import {
   TableRow,
 } from "../ui/table";
 import Badge from "../ui/badge/Badge";
-import Image from "next/image";
+import Link from "next/link";
 
-// Define the TypeScript interface for the table rows
 interface Order {
-  id: string;
-  customerName: string;
-  riderName: string;
-  status: "Delivered" | "Pending" | "Canceled" | "On the way";
-  date: string;
+  id: number;
+  status: string;
+  createdAt: string;
+  customer: { firstName: string; lastName: string };
+  rider?: { name: string } | null;
 }
 
-const tableData: Order[] = [
-  {
-    id: "#ORD-001",
-    customerName: "John Doe",
-    riderName: "Mike Swift",
-    status: "Delivered",
-    date: "2024-03-26",
-  },
-  {
-    id: "#ORD-002",
-    customerName: "Alice Smith",
-    riderName: "Leo Bolt",
-    status: "On the way",
-    date: "2024-03-26",
-  },
-  {
-    id: "#ORD-003",
-    customerName: "Bob Wilson",
-    riderName: "Sarah Dash",
-    status: "Pending",
-    date: "2024-03-25",
-  },
-  {
-    id: "#ORD-004",
-    customerName: "Eva Brown",
-    riderName: "Tom Racer",
-    status: "Delivered",
-    date: "2024-03-25",
-  },
-  {
-    id: "#ORD-005",
-    customerName: "Chris Green",
-    riderName: "None",
-    status: "Canceled",
-    date: "2024-03-24",
-  },
-];
-
 export default function RecentOrders() {
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/orders")
+      .then(res => res.json())
+      .then(data => {
+        setOrders(data.slice(0, 5)); // Show only 5
+        setLoading(false);
+      })
+      .catch(err => console.error("Orders fetch error:", err));
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="p-10 text-center animate-pulse bg-white dark:bg-white/[0.03] rounded-2xl border border-gray-100 dark:border-gray-800">
+         <p className="text-sm font-medium text-gray-400">Hydrating Mission Logs...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white px-4 pb-3 pt-4 dark:border-gray-800 dark:bg-white/[0.03] sm:px-6">
       <div className="flex flex-col gap-2 mb-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
-            Recent Orders
+             Recent Fleet Activity
           </h3>
+          <p className="text-xs text-gray-400">Latest 5 mission assignments</p>
         </div>
 
         <div className="flex items-center gap-3">
-          <button className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-theme-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200">
-            <svg
-              className="stroke-current fill-white dark:fill-gray-800"
-              width="20"
-              height="20"
-              viewBox="0 0 20 20"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                d="M2.29004 5.90393H17.7067"
-                stroke=""
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <path
-                d="M17.7075 14.0961H2.29085"
-                stroke=""
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <path
-                d="M12.0826 3.33331C13.5024 3.33331 14.6534 4.48431 14.6534 5.90414C14.6534 7.32398 13.5024 8.47498 12.0826 8.47498C10.6627 8.47498 9.51172 7.32398 9.51172 5.90415C9.51172 4.48432 10.6627 3.33331 12.0826 3.33331Z"
-                fill=""
-                stroke=""
-                strokeWidth="1.5"
-              />
-              <path
-                d="M7.91745 11.525C6.49762 11.525 5.34662 12.676 5.34662 14.0959C5.34661 15.5157 6.49762 16.6667 7.91745 16.6667C9.33728 16.6667 10.4883 15.5157 10.4883 14.0959C10.4883 12.676 9.33728 11.525 7.91745 11.525Z"
-                fill=""
-                stroke=""
-                strokeWidth="1.5"
-              />
-            </svg>
-            Filter
-          </button>
-          <button className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-theme-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200">
-            See all
-          </button>
+          <Link 
+            href="/orders" 
+            className="text-xs font-bold text-brand-500 hover:text-brand-600 uppercase tracking-widest px-3 py-1.5"
+          >
+            Mission Archive →
+          </Link>
         </div>
       </div>
       <div className="max-w-full overflow-x-auto">
         <Table>
-          {/* Table Header */}
           <TableHeader className="border-gray-100 dark:border-gray-800 border-y">
             <TableRow>
-              <TableCell
-                isHeader
-                className="py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-              >
-                Order ID
+              <TableCell isHeader className="py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">
+                Mission ID
               </TableCell>
-              <TableCell
-                isHeader
-                className="py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-              >
+              <TableCell isHeader className="py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">
                 Customer
               </TableCell>
-              <TableCell
-                isHeader
-                className="py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-              >
-                Rider
+              <TableCell isHeader className="py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">
+                Operative
               </TableCell>
-              <TableCell
-                isHeader
-                className="py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-              >
+              <TableCell isHeader className="py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">
                 Status
               </TableCell>
             </TableRow>
           </TableHeader>
 
-          {/* Table Body */}
-
           <TableBody className="divide-y divide-gray-100 dark:divide-gray-800">
-            {tableData.map((order) => (
-              <TableRow key={order.id} className="">
-                <TableCell className="py-3">
-                  <p className="font-medium text-gray-800 text-theme-sm dark:text-white/90">
-                    {order.id}
+            {orders.map((order) => (
+              <TableRow key={order.id} className="hover:bg-gray-50 dark:hover:bg-white/[0.01]">
+                <TableCell className="py-4">
+                  <p className="font-bold text-gray-800 text-theme-sm dark:text-white/90">
+                    #ORD-{order.id}
                   </p>
                 </TableCell>
-                <TableCell className="py-3 text-gray-500 text-theme-sm dark:text-gray-400">
-                  {order.customerName}
+                <TableCell className="py-4 text-gray-700 font-medium text-theme-sm dark:text-gray-400">
+                  {order.customer.firstName} {order.customer.lastName}
                 </TableCell>
-                <TableCell className="py-3 text-gray-500 text-theme-sm dark:text-gray-400">
-                  {order.riderName}
+                <TableCell className="py-4 text-gray-500 text-theme-sm dark:text-gray-400">
+                   {order.rider?.name || (
+                     <span className="text-[10px] font-black text-orange-500 uppercase tracking-tighter bg-orange-50 px-2 py-0.5 rounded-full">
+                        Pending Unit
+                     </span>
+                   )}
                 </TableCell>
-                <TableCell className="py-3 text-gray-500 text-theme-sm dark:text-gray-400">
+                <TableCell className="py-4 text-gray-500 text-theme-sm dark:text-gray-400">
                   <Badge
                     size="sm"
                     color={
-                      order.status === "Delivered"
-                        ? "success"
-                        : order.status === "Pending"
-                        ? "warning"
-                        : order.status === "On the way"
-                        ? "info"
-                        : "error"
+                      order.status === "Delivered" ? "success" : 
+                      order.status === "Pending" ? "warning" : 
+                      ["Accepted", "Arrived", "Started"].includes(order.status) ? "info" : "error"
                     }
                   >
                     {order.status}
@@ -175,6 +110,14 @@ export default function RecentOrders() {
                 </TableCell>
               </TableRow>
             ))}
+
+            {orders.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={4} className="py-12 text-center text-gray-400 italic text-sm">
+                   No recent mission logs detected
+                </TableCell>
+              </TableRow>
+            )}
           </TableBody>
         </Table>
       </div>

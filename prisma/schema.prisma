@@ -17,30 +17,37 @@ model Admin {
 }
 
 model Rider {
-  id        Int      @id @default(autoincrement())
-  name      String
-  phone     String   @unique
-  email     String?  @unique
-  password  String
-  status    String   @default("active") // active, suspended
-  nid       String?
-  trips     Trip[]
-  orders    Order[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                Int      @id @default(autoincrement())
+  name              String
+  phone             String   @unique
+  email             String?  @unique
+  password          String
+  status            String   @default("active") // active, suspended
+  nid               String?
+  assignedVehicleId Int?     // Admin can permanently assign a vehicle
+  assignedVehicle   Vehicle? @relation("AssignedVehicle", fields: [assignedVehicleId], references: [id])
+  trips             Trip[]
+  orders            Order[]
+  lastLat           Float?   // Last known GPS latitude
+  lastLng           Float?   // Last known GPS longitude
+  lastArea          String?  // Last known neighborhood/locality
+  lastUpdated       DateTime? // Timestamp of last signal
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 }
 
 model Vehicle {
-  id          Int      @id @default(autoincrement())
-  regNumber   String   @unique
-  model       String
-  type        String   @default("electric")
-  status      String   @default("available") // available, in_use, maintenance
-  battery     Int      @default(100)
-  image       String?
-  trips       Trip[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id              Int      @id @default(autoincrement())
+  regNumber       String   @unique
+  model           String
+  type            String   @default("electric")
+  status          String   @default("available") // available, in_use, maintenance
+  battery         Int      @default(100)
+  image           String?
+  trips           Trip[]
+  assignedRiders  Rider[]  @relation("AssignedVehicle")  // riders assigned to this vehicle
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }
 
 model Trip {
@@ -93,8 +100,20 @@ model Order {
   customer    Customer @relation(fields: [customerId], references: [id])
   riderId     Int?
   rider       Rider?   @relation(fields: [riderId], references: [id])
-  status      String   @default("Pending") // Pending, On the way, Delivered, Canceled
+  status      String   @default("Pending") // Pending, Accepted, Arrived, Started, Delivered, Canceled
   date        DateTime @default(now())
+  
+  // New ride request fields:
+  pickupLat   Float?
+  pickupLng   Float?
+  dropLat     Float?
+  dropLng     Float?
+  pickupLoc   String?
+  dropLoc     String?
+  otp         String?
+  paymentMode String?  @default("Cash")
+  amount      Float?
+
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }

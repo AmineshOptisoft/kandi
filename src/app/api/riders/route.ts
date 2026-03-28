@@ -6,13 +6,29 @@ export async function GET() {
   try {
     const riders = await prisma.rider.findMany({
       include: {
-        _count: {
-          select: { trips: true }
-        }
+        _count: { select: { trips: true } },
       },
       orderBy: { createdAt: 'desc' }
     })
-    return NextResponse.json(riders)
+
+    // Attach assigned vehicle info manually to avoid stale Prisma TS types issue
+    const riderIds = riders.map((r: any) => r.id)
+    const riderDetails = await (prisma as any).rider.findMany({
+      where: { id: { in: riderIds } },
+      select: {
+        id: true,
+        assignedVehicleId: true,
+        assignedVehicle: { select: { id: true, regNumber: true, model: true, battery: true } }
+      }
+    })
+    const vehicleMap = new Map(riderDetails.map((r: any) => [r.id, r.assignedVehicle]))
+
+    const ridersWithVehicle = riders.map((r: any) => ({
+      ...r,
+      assignedVehicle: vehicleMap.get(r.id) ?? null
+    }))
+
+    return NextResponse.json(ridersWithVehicle)
   } catch (error) {
     console.error('Fetch riders error:', error)
     return NextResponse.json({ error: 'Failed to fetch riders' }, { status: 500 })

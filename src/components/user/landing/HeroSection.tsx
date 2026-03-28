@@ -7,7 +7,7 @@ export default function HeroSection() {
       <div className="grid grid-cols-1 items-center gap-8">
         <div>
           <p className="inline-flex rounded-full bg-white/15 px-3 py-1 text-xs font-medium uppercase tracking-wide text-white">
-            Kandi E-Bike Delivery
+            Kadi E-Bike Delivery
           </p>
           <h1 className="mt-4 text-3xl font-bold leading-tight md:text-5xl">
             Anything delivered in minutes, across your city.
@@ -19,7 +19,7 @@ export default function HeroSection() {
 
           <div className="mt-6 flex flex-wrap gap-3">
             <Link
-              href="/user/orders"
+              href="/user/book-ride"
               className="rounded-xl bg-white px-5 py-2.5 text-sm font-semibold text-brand-700 hover:bg-gray-100"
             >
               Start Ordering
