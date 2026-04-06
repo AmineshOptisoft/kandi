@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import Badge from "../ui/badge/Badge";
-import { ArrowDownIcon, ArrowUpIcon, BoxIconLine, GroupIcon } from "@/icons";
+import { ArrowDownIcon, ArrowUpIcon, BoxIconLine, GroupIcon, TruckIcon } from "@/icons";
 
 interface Stats {
   totalOrders: number;
@@ -28,7 +28,7 @@ export const EcommerceMetrics = () => {
 
   if (loading) {
     return <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 md:gap-6 animate-pulse">
-      {[1,2,3,4].map(i => (
+      {[1, 2, 3, 4].map(i => (
         <div key={i} className="h-32 rounded-2xl bg-gray-100 dark:bg-gray-800" />
       ))}
     </div>;
@@ -55,7 +55,7 @@ export const EcommerceMetrics = () => {
       {/* Active Deliveries */}
       <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
         <div className="flex items-center justify-center w-12 h-12 bg-blue-50 rounded-xl dark:bg-blue-900/20">
-           <span className="text-xl">🚚</span>
+          <span className="text-xl"><TruckIcon /></span>
         </div>
         <div className="flex items-end justify-between mt-5">
           <div>
@@ -71,7 +71,7 @@ export const EcommerceMetrics = () => {
       {/* Completed Orders */}
       <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
         <div className="flex items-center justify-center w-12 h-12 bg-green-50 rounded-xl dark:bg-green-900/20">
-           <ArrowUpIcon className="text-green-600" />
+          <ArrowUpIcon className="text-green-600" />
         </div>
         <div className="flex items-end justify-between mt-5">
           <div>

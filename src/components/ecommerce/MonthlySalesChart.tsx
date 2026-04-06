@@ -12,6 +12,19 @@ const ReactApexChart = dynamic(() => import("react-apexcharts"), {
 });
 
 export default function MonthlySalesChart() {
+  const [data, setData] = useState<number[]>([0,0,0,0,0,0,0,0,0,0,0,0]);
+
+  import("react").then((React) => {
+    React.useEffect(() => {
+      fetch("/api/admin/dashboard-stats")
+        .then(res => res.json())
+        .then(res => {
+          if (res.chartData?.monthlyDeliveries) {
+            setData(res.chartData.monthlyDeliveries);
+          }
+        });
+    }, []);
+  });
   const options: ApexOptions = {
     colors: ["#006600"],
     chart: {
@@ -94,7 +107,7 @@ export default function MonthlySalesChart() {
   const series = [
     {
       name: "Deliveries",
-      data: [450, 520, 480, 610, 590, 650, 720, 680, 750, 810, 790, 850],
+      data: data,
     },
   ];
   const [isOpen, setIsOpen] = useState(false);

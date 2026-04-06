@@ -51,7 +51,7 @@ import HorizontaLDots from "./horizontal-dots.svg";
 import ChatIcon from "./chat.svg";
 import MoreDotIcon from "./more-dot.svg";
 import BellIcon from "./bell.svg";
-
+import TruckIcon from "./truck.svg";
 export {
   DownloadIcon,
   BellIcon,
@@ -91,6 +91,7 @@ export {
   EyeIcon,
   EyeCloseIcon,
   TimeIcon,
+  TruckIcon,
   CopyIcon,
   ChevronLeftIcon,
   UserCircleIcon,

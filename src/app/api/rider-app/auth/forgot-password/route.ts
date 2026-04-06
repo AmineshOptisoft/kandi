@@ -11,6 +11,31 @@ function generateOtp() {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
+/**
+ * @swagger
+ * /api/rider-app/auth/forgot-password:
+ *   post:
+ *     tags:
+ *       - Rider Auth
+ *     summary: Rider Forgot Password
+ *     description: Requests an OTP to be sent for password reset.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               phone:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: OTP sent
+ *       400:
+ *         description: Bad request
+ */
 export async function POST(request: Request) {
   try {
     const body = await request.json();

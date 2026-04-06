@@ -19,7 +19,7 @@ function LogoBrand() {
         <img
           width={150}
           height={40}
-          src="/images/logo/Kadi-logo.png"
+          src="/images/logo/kandi-logo.png"
           alt="Logo"
           className="object-contain"
           onError={() => setImgError(true)}

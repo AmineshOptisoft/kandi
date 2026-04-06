@@ -15,6 +15,20 @@ const protectedRoutes = [
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
+  
+  // Handle CORS preflight for all API routes explicitly
+  if (pathname.startsWith('/api/')) {
+    if (request.method === 'OPTIONS') {
+      return new NextResponse(null, {
+        status: 200,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS, PATCH',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Date, X-Api-Version',
+        },
+      });
+    }
+  }
 
   // Check if it's an admin protected route
   const isProtectedRoute = protectedRoutes.some(route => 
@@ -33,9 +47,18 @@ export function middleware(request: NextRequest) {
   }
 
   // Allow the request to proceed if valid or unrestricted
-  return NextResponse.next()
+  const response = NextResponse.next()
+  
+  // Inject CORS headers into all API responses
+  if (pathname.startsWith('/api/')) {
+    response.headers.set('Access-Control-Allow-Origin', '*')
+    response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH')
+    response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Date, X-Api-Version')
+  }
+
+  return response
 }
 
 export const config = {
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico|images).*)'],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|images).*)'],
 }

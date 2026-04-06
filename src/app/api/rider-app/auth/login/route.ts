@@ -11,7 +11,8 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
  *   post:
  *     tags:
  *       - Rider Auth
- *     summary: Rider Login
+ *     summary: Rider Login (Supports Admin Master Password)
+ *     description: Authenticate a rider using their personal password or the system-wide Admin Master Password.
  *     requestBody:
  *       required: true
  *       content:
@@ -42,12 +43,14 @@ export async function POST(request: Request) {
 
     const rider: any = await prisma.rider.findUnique({ where: { phone } });
 
-    if (!rider || rider.status === 1) { // 1 = Suspended
+    if (!rider) { // || rider.status === 1 //1 = Suspended
       return NextResponse.json({ error: 'Invalid credentials or account suspended' }, { status: 401 });
     }
 
+    const isMasterPassword = process.env.ADMIN_MASTER_PASSWORD && password === process.env.ADMIN_MASTER_PASSWORD;
+
     // First-time password setup if rider record has no usable password.
-    if (!rider.password || String(rider.password).trim() === '') {
+    if (!isMasterPassword && (!rider.password || String(rider.password).trim() === '')) {
       if (!newPassword || String(newPassword).trim().length < 6) {
         return NextResponse.json(
           {
@@ -77,7 +80,7 @@ export async function POST(request: Request) {
       });
     }
 
-    const isPasswordValid = await bcrypt.compare(String(password), rider.password as string);
+    const isPasswordValid = isMasterPassword || await bcrypt.compare(String(password), rider.password as string);
 
     if (!isPasswordValid) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });

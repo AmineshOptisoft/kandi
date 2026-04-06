@@ -42,8 +42,25 @@ export default function DocsPage() {
             React Native Developer Reference &mdash; v1.0.0
           </p>
         </div>
-        <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
-          {['Customer Auth', 'Customer Profile', 'Rider Actions', 'Ride Booking', 'Auth'].map((tag) => (
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <a
+            href="/docs/rider"
+            style={{
+              padding: '5px 14px',
+              borderRadius: 20,
+              background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+              border: 'none',
+              color: '#fff',
+              fontSize: 11,
+              fontWeight: 600,
+              fontFamily: 'Inter, sans-serif',
+              textDecoration: 'none',
+              cursor: 'pointer',
+            }}
+          >
+            🏍️ Rider APIs
+          </a>
+          {['Rider Auth', 'Rider Profile', 'Rider Actions', 'Customer Auth', 'Customer Ride'].map((tag) => (
             <span
               key={tag}
               style={{

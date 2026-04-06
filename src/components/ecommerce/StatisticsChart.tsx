@@ -1,14 +1,29 @@
 "use client";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { ApexOptions } from "apexcharts";
 import flatpickr from "flatpickr";
-import ChartTab from "../common/ChartTab";
+import ChartTab, { ChartFilter } from "../common/ChartTab";
 import { CalenderIcon } from "../../icons";
 
 const Chart = dynamic(() => import("react-apexcharts"), { ssr: false });
 
 export default function StatisticsChart() {
+  const [salesData, setSalesData] = useState<number[]>([0,0,0,0,0,0,0,0,0,0,0,0]);
+  const [revenueData, setRevenueData] = useState<number[]>([0,0,0,0,0,0,0,0,0,0,0,0]);
+  const [filter, setFilter] = useState<ChartFilter>("Monthly");
+
+  useEffect(() => {
+    fetch("/api/admin/dashboard-stats")
+      .then(res => res.json())
+      .then(res => {
+        if (res.chartData) {
+          setSalesData(res.chartData.salesPerMonth);
+          setRevenueData(res.chartData.revenuePerMonth);
+        }
+      });
+  }, []);
+
   const datePickerRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -95,21 +110,12 @@ export default function StatisticsChart() {
       },
     },
     xaxis: {
-      type: "category", // Category-based x-axis
-      categories: [
-        "Jan",
-        "Feb",
-        "Mar",
-        "Apr",
-        "May",
-        "Jun",
-        "Jul",
-        "Aug",
-        "Sep",
-        "Oct",
-        "Nov",
-        "Dec",
-      ],
+      type: "category",
+      categories: filter === "Quarterly" 
+        ? ["Q1", "Q2", "Q3", "Q4"] 
+        : filter === "Annually" 
+        ? ["Year-to-Date"] 
+        : ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
       axisBorder: {
         show: false, // Hide x-axis border
       },
@@ -136,14 +142,35 @@ export default function StatisticsChart() {
     },
   };
 
+  let displaySales = salesData;
+  let displayRevenue = revenueData;
+
+  if (filter === "Quarterly") {
+    displaySales = [
+      salesData[0]+salesData[1]+salesData[2],
+      salesData[3]+salesData[4]+salesData[5],
+      salesData[6]+salesData[7]+salesData[8],
+      salesData[9]+salesData[10]+salesData[11]
+    ];
+    displayRevenue = [
+      revenueData[0]+revenueData[1]+revenueData[2],
+      revenueData[3]+revenueData[4]+revenueData[5],
+      revenueData[6]+revenueData[7]+revenueData[8],
+      revenueData[9]+revenueData[10]+revenueData[11]
+    ];
+  } else if (filter === "Annually") {
+    displaySales = [salesData.reduce((a, b) => a + b, 0)];
+    displayRevenue = [revenueData.reduce((a, b) => a + b, 0)];
+  }
+
   const series = [
     {
       name: "Sales",
-      data: [180, 190, 170, 160, 175, 165, 170, 205, 230, 210, 240, 235],
+      data: displaySales,
     },
     {
       name: "Revenue",
-      data: [40, 30, 50, 40, 55, 40, 70, 100, 110, 120, 150, 140],
+      data: displayRevenue,
     },
   ];
   return (
@@ -158,7 +185,7 @@ export default function StatisticsChart() {
           </p>
         </div>
         <div className="flex items-center gap-3 sm:justify-end">
-          <ChartTab />
+          <ChartTab selected={filter} onChange={setFilter} />
           <div className="relative inline-flex items-center">
             <CalenderIcon className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 lg:left-3 lg:top-1/2 lg:translate-x-0 lg:-translate-y-1/2  text-gray-500 dark:text-gray-400 pointer-events-none z-10" />
             <input

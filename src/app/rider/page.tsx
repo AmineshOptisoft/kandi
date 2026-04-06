@@ -73,12 +73,12 @@ export default function RiderDashboard() {
     );
   }, []);
 
-  const currentRider = riders.find((r: any) => r.id.toString() === riderId);
+  const currentRider = riders.find((r: any) => r.id?.toString() === riderId);
 
   // Auto-set vehicle if rider has an assigned one
   useEffect(() => {
     if (currentRider && currentRider.assignedVehicle && !isLoggedIn) {
-      setVehicleId(currentRider.assignedVehicle.id.toString());
+      setVehicleId(currentRider.assignedVehicle.id?.toString());
     }
   }, [riderId, currentRider, isLoggedIn]);
 
@@ -90,11 +90,11 @@ export default function RiderDashboard() {
         setLoginPhone(savedPhone);
         const found = riders.find((r: any) => r.phone === savedPhone);
         if (found) {
-          setRiderId(found.id.toString());
+          setRiderId(found.id?.toString());
           if (found.assignedVehicle) {
-            setVehicleId(found.assignedVehicle.id.toString());
+            setVehicleId(found.assignedVehicle.id?.toString());
           } else if (vehicles.length > 0) {
-            setVehicleId(vehicles[0].id.toString());
+            setVehicleId(vehicles[0].id?.toString());
           }
           setLoginStep("vehicle");
           // Skip login card on revisit and open dashboard directly.
@@ -286,9 +286,9 @@ export default function RiderDashboard() {
       const loggedRiderId = data?.rider?.id?.toString();
       if (loggedRiderId) {
         setRiderId(loggedRiderId);
-        const found = riders.find((r: any) => r.id.toString() === loggedRiderId);
-        if (found?.assignedVehicle) setVehicleId(found.assignedVehicle.id.toString());
-        else if (vehicles.length > 0) setVehicleId(vehicles[0].id.toString());
+        const found = riders.find((r: any) => r.id?.toString() === loggedRiderId);
+        if (found?.assignedVehicle) setVehicleId(found.assignedVehicle.id?.toString());
+        else if (vehicles.length > 0) setVehicleId(vehicles[0].id?.toString());
       }
       setLoginStep("vehicle");
       setRequiresPasswordSetup(false);
@@ -309,8 +309,8 @@ export default function RiderDashboard() {
     if (res.ok) {
       const newRider = await res.json();
       setRiders([...riders, newRider]);
-      setRiderId(newRider.id.toString());
-      if (vehicles.length > 0) setVehicleId(vehicles[0].id.toString());
+      setRiderId(newRider.id?.toString());
+      if (vehicles.length > 0) setVehicleId(vehicles[0].id?.toString());
       localStorage.setItem("sim_rider_phone", loginPhone);
       setLoginStep("vehicle");
     } else {
@@ -337,7 +337,7 @@ export default function RiderDashboard() {
   };
 
   const handleToggleOnlineStatus = () => {
-     setIsOnline(!isOnline);
+    setIsOnline(!isOnline);
   };
 
   // ────────────────────────────────────────────────────────────────────────
@@ -466,8 +466,8 @@ export default function RiderDashboard() {
     );
   }
 
-  const selectedRider = riderProfile || riders.find((r: any) => r.id.toString() === riderId);
-  const selectedVehicle = riderProfile?.assignedVehicle || vehicles.find((v: any) => v.id.toString() === vehicleId);
+  const selectedRider = riderProfile || riders.find((r: any) => r.id?.toString() === riderId);
+  const selectedVehicle = riderProfile?.assignedVehicle || vehicles.find((v: any) => v.id?.toString() === vehicleId);
 
   // ────────────────────────────────────────────────────────────────────────
   // LOGGED IN — Full Dashboard
@@ -499,11 +499,10 @@ export default function RiderDashboard() {
               )}
               <button
                 onClick={handleToggleOnlineStatus}
-                className={`px-4 py-1.5 text-xs font-bold rounded-lg shadow-sm transition-all ${
-                  isOnline 
-                  ? "text-red-500 bg-red-50 border-2 border-red-200 hover:bg-red-100" 
+                className={`px-4 py-1.5 text-xs font-bold rounded-lg shadow-sm transition-all ${isOnline
+                  ? "text-red-500 bg-red-50 border-2 border-red-200 hover:bg-red-100"
                   : "text-white bg-green-500 hover:bg-green-600 border-2 border-green-500 shadow-green-500/30"
-                }`}
+                  }`}
               >
                 {isOnline ? "Go Offline" : "Go Online"}
               </button>
@@ -584,16 +583,16 @@ export default function RiderDashboard() {
                     <div className="rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-10 text-center">
                       {!isOnline ? (
                         <>
-                           <p className="text-4xl mb-3">🛌</p>
-                           <p className="font-semibold text-gray-700 dark:text-gray-300">You are offline</p>
-                           <p className="text-sm text-gray-400 mt-1">Go online to start receiving ride requests.</p>
-                           <button onClick={handleToggleOnlineStatus} className="mt-4 px-6 py-2 bg-green-500 text-white font-bold rounded-xl shadow-lg hover:scale-105 transition-all">Go Online Now 🟢</button>
+                          <p className="text-4xl mb-3">🛌</p>
+                          <p className="font-semibold text-gray-700 dark:text-gray-300">You are offline</p>
+                          <p className="text-sm text-gray-400 mt-1">Go online to start receiving ride requests.</p>
+                          <button onClick={handleToggleOnlineStatus} className="mt-4 px-6 py-2 bg-green-500 text-white font-bold rounded-xl shadow-lg hover:scale-105 transition-all">Go Online Now 🟢</button>
                         </>
                       ) : (
                         <>
-                           <p className="text-4xl mb-3">📡</p>
-                           <p className="font-semibold text-gray-700 dark:text-gray-300">Scanning for duties...</p>
-                           <p className="text-sm text-gray-400 mt-1">No ride requests near you right now.</p>
+                          <p className="text-4xl mb-3">📡</p>
+                          <p className="font-semibold text-gray-700 dark:text-gray-300">Scanning for duties...</p>
+                          <p className="text-sm text-gray-400 mt-1">No ride requests near you right now.</p>
                         </>
                       )}
                     </div>
@@ -608,7 +607,7 @@ export default function RiderDashboard() {
                             </div>
                             <div className="text-right text-xs opacity-90">
                               <p>💳 {order.paymentMode || "Cash"}</p>
-                              <p className="opacity-70">#ORD-{order.id.toString().padStart(3, "0")}</p>
+                              <p className="opacity-70">#ORD-{order.id?.toString().padStart(3, "0")}</p>
                             </div>
                           </div>
                           <div className="p-3 space-y-3 flex flex-col flex-1 min-h-0">
@@ -753,7 +752,7 @@ export default function RiderDashboard() {
                     <div className="p-4">
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
-                          <p className="font-bold text-sm text-gray-800 dark:text-white">#ORD-{order.id.toString().padStart(3, "0")}</p>
+                          <p className="font-bold text-sm text-gray-800 dark:text-white">#ORD-{order.id?.toString().padStart(3, "0")}</p>
                           <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${STATUS_COLORS[order.status] || "bg-gray-100 text-gray-600"}`}>
                             {order.status}
                           </span>

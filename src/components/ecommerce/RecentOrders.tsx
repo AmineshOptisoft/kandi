@@ -23,12 +23,13 @@ interface Order {
 export default function RecentOrders() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [filterTab, setFilterTab] = useState<"Pending" | "Active" | "Completed" | "Cancelled" | "All">("All");
 
   useEffect(() => {
     fetch("/api/orders")
       .then(res => res.json())
       .then(data => {
-        setOrders(data.slice(0, 5)); // Show only 5
+        setOrders(data);
         setLoading(false);
       })
       .catch(err => console.error("Orders fetch error:", err));
@@ -47,12 +48,28 @@ export default function RecentOrders() {
       <div className="flex flex-col gap-2 mb-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
-             Recent Fleet Activity
+             Pending Ride Requests
           </h3>
-          <p className="text-xs text-gray-400">Latest 5 mission assignments</p>
+          <p className="text-xs text-gray-400">Latest mission assignments</p>
         </div>
 
         <div className="flex items-center gap-3">
+          <div className="flex flex-wrap gap-1 md:gap-2 px-1 mr-2 bg-gray-50 dark:bg-gray-800/50 p-1 rounded-lg">
+            {["All", "Pending", "Active", "Completed", "Cancelled"].map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setFilterTab(tab as any)}
+                className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
+                  filterTab === tab
+                    ? "bg-white dark:bg-black shadow-sm text-brand-500"
+                    : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                }`}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
+
           <Link 
             href="/orders" 
             className="text-xs font-bold text-brand-500 hover:text-brand-600 uppercase tracking-widest px-3 py-1.5"
@@ -81,7 +98,16 @@ export default function RecentOrders() {
           </TableHeader>
 
           <TableBody className="divide-y divide-gray-100 dark:divide-gray-800">
-            {orders.map((order) => (
+            {orders
+              .filter(o => {
+                if (filterTab === "Pending") return o.status === ORDER_STATUS.PENDING;
+                if (filterTab === "Active") return [ORDER_STATUS.ACCEPTED, ORDER_STATUS.ARRIVED, ORDER_STATUS.STARTED].includes(o.status);
+                if (filterTab === "Completed") return o.status === ORDER_STATUS.DELIVERED;
+                if (filterTab === "Cancelled") return o.status === ORDER_STATUS.CANCELED;
+                return true;
+              })
+              .slice(0, 5) // Show only 5 after filtering
+              .map((order) => (
               <TableRow key={order.id} className="hover:bg-gray-50 dark:hover:bg-white/[0.01]">
                 <TableCell className="py-4">
                   <p className="font-bold text-gray-800 text-theme-sm dark:text-white/90">
@@ -113,7 +139,13 @@ export default function RecentOrders() {
               </TableRow>
             ))}
 
-            {orders.length === 0 && (
+            {orders.filter(o => {
+                if (filterTab === "Pending") return o.status === ORDER_STATUS.PENDING;
+                if (filterTab === "Active") return [ORDER_STATUS.ACCEPTED, ORDER_STATUS.ARRIVED, ORDER_STATUS.STARTED].includes(o.status);
+                if (filterTab === "Completed") return o.status === ORDER_STATUS.DELIVERED;
+                if (filterTab === "Cancelled") return o.status === ORDER_STATUS.CANCELED;
+                return true;
+              }).length === 0 && (
               <TableRow>
                 <TableCell colSpan={4} className="py-12 text-center text-gray-400 italic text-sm">
                    No recent mission logs detected

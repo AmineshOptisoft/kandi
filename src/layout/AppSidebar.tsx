@@ -38,7 +38,7 @@ function LogoAvatar({ size }: { size: number }) {
 
   return (
     <img
-      src="/images/logo/Kadi-logo.png"
+      src="/images/logo/kandi-logo.png"
       alt="Kadi Logo"
       width={size}
       height={size}

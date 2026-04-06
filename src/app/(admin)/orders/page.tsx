@@ -7,13 +7,14 @@ import { Modal } from "@/components/ui/modal";
 import Label from "@/components/form/Label";
 import { getSocket } from "@/lib/socket";
 
-import { ORDER_STATUS, RIDER_STATUS, VEHICLE_STATUS } from "@/lib/constants";
+import { ORDER_STATUS, ORDER_STATUS_LABELS, RIDER_STATUS, VEHICLE_STATUS } from "@/lib/constants";
 
 export default function OrdersList() {
   const [orders, setOrders] = useState<any[]>([]);
   const [riders, setRiders] = useState<any[]>([]);
   const [vehicles, setVehicles] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [filterTab, setFilterTab] = useState<"Pending" | "Active" | "Completed" | "Cancelled" | "All">("Pending");
 
   // For Assignment Modal
   const [assignModalOpen, setAssignModalOpen] = useState(false);
@@ -56,9 +57,9 @@ export default function OrdersList() {
   // Handle auto-selection of pinned vehicle
   useEffect(() => {
     if (assignData.riderId) {
-      const selectedRider = riders.find((r: any) => r.id.toString() === assignData.riderId);
+      const selectedRider = riders.find((r: any) => r.id?.toString() === assignData.riderId);
       if (selectedRider?.assignedVehicleId) {
-        setAssignData(prev => ({ ...prev, vehicleId: selectedRider.assignedVehicleId.toString() }));
+        setAssignData(prev => ({ ...prev, vehicleId: selectedRider.assignedVehicleId?.toString() }));
       }
     }
   }, [assignData.riderId, riders]);
@@ -68,8 +69,8 @@ export default function OrdersList() {
   const getRelevantVehicles = () => {
     const baseAvail = vehicles.filter((v: any) => v.status === VEHICLE_STATUS.AVAILABLE);
     if (!assignData.riderId) return baseAvail;
-    
-    const selectedRider = riders.find((r: any) => r.id.toString() === assignData.riderId);
+
+    const selectedRider = riders.find((r: any) => r.id?.toString() === assignData.riderId);
     if (selectedRider?.assignedVehicleId) {
       const pinned = vehicles.find((v: any) => v.id === selectedRider.assignedVehicleId);
       if (pinned && !baseAvail.find(v => v.id === pinned.id)) {
@@ -104,9 +105,32 @@ export default function OrdersList() {
 
   if (loading) return <div>Loading orders...</div>;
 
+  const filteredOrders = orders.filter(o => {
+    if (filterTab === "Pending") return o.status === ORDER_STATUS.PENDING;
+    if (filterTab === "Active") return [ORDER_STATUS.ACCEPTED, ORDER_STATUS.ARRIVED, ORDER_STATUS.STARTED].includes(o.status);
+    if (filterTab === "Completed") return o.status === ORDER_STATUS.DELIVERED;
+    if (filterTab === "Cancelled") return o.status === ORDER_STATUS.CANCELED;
+    return true; // "All"
+  });
+
   return (
     <div className="space-y-6">
-      <ComponentCard title="Pending Ride Requests">
+      <ComponentCard title="Ride Requests">
+        <div className="mb-4 flex flex-wrap gap-2 px-1">
+          {["Pending", "Active", "Completed", "Cancelled", "All"].map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setFilterTab(tab as any)}
+              className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                filterTab === tab
+                  ? "bg-brand-500 text-white"
+                  : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+              }`}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-800">
             <thead className="bg-gray-50 dark:bg-gray-900">
@@ -119,26 +143,47 @@ export default function OrdersList() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
-              {orders.filter(o => o.status === ORDER_STATUS.PENDING).map((order) => (
+              {filteredOrders.map((order) => (
                 <tr key={order.id}>
                   <td className="px-6 py-4 text-sm">#ORD-{order.id}</td>
                   <td className="px-6 py-4 text-sm">{order.customer?.firstName}</td>
                   <td className="px-6 py-4 text-sm truncate max-w-[150px]">{order.pickupLoc}</td>
-                  <td className="px-6 py-4"><Badge color="warning">{order.status}</Badge></td>
                   <td className="px-6 py-4">
-                    <button
-                      onClick={() => {
-                        setSelectedOrder(order);
-                        setAssignModalOpen(true);
-                        setAssignData({ riderId: "", vehicleId: "" });
-                      }}
-                      className="text-brand-500 font-bold hover:underline"
-                    >
-                      Assign Rider
-                    </button>
+                    <Badge color={
+                      order.status === ORDER_STATUS.DELIVERED ? "success" : 
+                      order.status === ORDER_STATUS.PENDING ? "warning" : 
+                      [ORDER_STATUS.ACCEPTED, ORDER_STATUS.ARRIVED, ORDER_STATUS.STARTED].includes(order.status) ? "info" : "error"
+                    }>
+                      {ORDER_STATUS_LABELS[order.status] || order.status}
+                    </Badge>
+                  </td>
+                  <td className="px-6 py-4">
+                    {order.status === ORDER_STATUS.PENDING ? (
+                      <button
+                        onClick={() => {
+                          setSelectedOrder(order);
+                          setAssignModalOpen(true);
+                          setAssignData({ riderId: "", vehicleId: "" });
+                        }}
+                        className="text-brand-500 font-bold hover:underline"
+                      >
+                        Assign Rider
+                      </button>
+                    ) : (
+                      <span className="text-gray-400 text-sm italic">
+                        {order.rider?.name || 'N/A'}
+                      </span>
+                    )}
                   </td>
                 </tr>
               ))}
+              {filteredOrders.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="py-12 text-center text-gray-400 italic text-sm">
+                    No orders found in {filterTab} status.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

@@ -7,6 +7,36 @@ function hashOtp(otp: string) {
   return crypto.createHash("sha256").update(otp).digest("hex");
 }
 
+/**
+ * @swagger
+ * /api/rider-app/auth/reset-password:
+ *   post:
+ *     tags:
+ *       - Rider Auth
+ *     summary: Rider Reset Password
+ *     description: Reset password using the OTP.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [otp, newPassword]
+ *             properties:
+ *               phone:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *               otp:
+ *                 type: string
+ *               newPassword:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Password reset successful
+ *       400:
+ *         description: Validation error or invalid OTP
+ */
 export async function POST(request: Request) {
   try {
     const body = await request.json();

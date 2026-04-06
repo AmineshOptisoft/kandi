@@ -5,7 +5,7 @@ import { ApexOptions } from "apexcharts";
 import dynamic from "next/dynamic";
 import { Dropdown } from "../ui/dropdown/Dropdown";
 import { MoreDotIcon } from "@/icons";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DropdownItem } from "../ui/dropdown/DropdownItem";
 // Dynamically import the ReactApexChart component
 const ReactApexChart = dynamic(() => import("react-apexcharts"), {
@@ -13,7 +13,55 @@ const ReactApexChart = dynamic(() => import("react-apexcharts"), {
 });
 
 export default function MonthlyTarget() {
-  const series = [75.55];
+  const [data, setData] = useState({ 
+    currentMonthRevenue: 0, 
+    currentQuarterRevenue: 0, 
+    currentYearRevenue: 0, 
+    monthlyTarget: 20000, 
+    todayRevenue: 0 
+  });
+  const [period, setPeriod] = useState<"Monthly" | "Quarterly" | "Annually">("Monthly");
+  
+  useEffect(() => {
+    fetch("/api/admin/dashboard-stats")
+      .then(res => res.json())
+      .then(res => {
+        if (res.chartData?.targetStats) {
+          setData({
+            currentMonthRevenue: res.chartData.targetStats.currentMonthRevenue || 0,
+            currentQuarterRevenue: res.chartData.targetStats.currentQuarterRevenue || 0,
+            currentYearRevenue: res.chartData.targetStats.currentYearRevenue || 0,
+            monthlyTarget: res.chartData.targetStats.monthlyTarget || 20000,
+            todayRevenue: res.chartData.targetStats.todayRevenue || 0
+          });
+        }
+      });
+  }, []);
+
+  const today = new Date();
+  const currentMonthName = today.toLocaleString('default', { month: 'long' });
+  const currentQuarterName = `Q${Math.floor(today.getMonth() / 3) + 1}`;
+  const currentYearName = today.getFullYear();
+
+  let currentTarget = data.monthlyTarget;
+  let currentRevenue = data.currentMonthRevenue;
+  let title = `${currentMonthName} Target`;
+  let subtitle = `Target you've set for ${currentMonthName}`;
+
+  if (period === "Quarterly") {
+    currentTarget = data.monthlyTarget * 3;
+    currentRevenue = data.currentQuarterRevenue;
+    title = `${currentQuarterName} Target`;
+    subtitle = `Target you've set for ${currentQuarterName}`;
+  } else if (period === "Annually") {
+    currentTarget = data.monthlyTarget * 12;
+    currentRevenue = data.currentYearRevenue;
+    title = `${currentYearName} Target`;
+    subtitle = `Target you've set for ${currentYearName}`;
+  }
+
+  const progress = Math.min(100, currentTarget > 0 ? (currentRevenue / currentTarget) * 100 : 0);
+  const series = [Number(progress.toFixed(2))];
   const options: ApexOptions = {
     colors: ["#006600"],
     chart: {
@@ -78,10 +126,10 @@ export default function MonthlyTarget() {
         <div className="flex justify-between">
           <div>
             <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
-              Monthly Target
+              {title}
             </h3>
             <p className="mt-1 font-normal text-gray-500 text-theme-sm dark:text-gray-400">
-              Target you’ve set for each month
+              {subtitle}
             </p>
           </div>
           <div className="relative inline-block">
@@ -94,18 +142,22 @@ export default function MonthlyTarget() {
               className="w-40 p-2"
             >
               <DropdownItem
-                tag="a"
-                onItemClick={closeDropdown}
-                className="flex w-full font-normal text-left text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
+                onItemClick={() => { setPeriod("Monthly"); closeDropdown(); }}
+                className={`flex w-full font-normal text-left text-gray-500 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 ${period === 'Monthly' ? 'bg-gray-100 dark:bg-white/5 font-medium' : ''}`}
               >
-                View More
+                Monthly
               </DropdownItem>
               <DropdownItem
-                tag="a"
-                onItemClick={closeDropdown}
-                className="flex w-full font-normal text-left text-gray-500 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
+                onItemClick={() => { setPeriod("Quarterly"); closeDropdown(); }}
+                className={`flex w-full font-normal text-left text-gray-500 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 ${period === 'Quarterly' ? 'bg-gray-100 dark:bg-white/5 font-medium' : ''}`}
               >
-                Delete
+                Quarterly
+              </DropdownItem>
+              <DropdownItem
+                onItemClick={() => { setPeriod("Annually"); closeDropdown(); }}
+                className={`flex w-full font-normal text-left text-gray-500 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 ${period === 'Annually' ? 'bg-gray-100 dark:bg-white/5 font-medium' : ''}`}
+              >
+                Annually
               </DropdownItem>
             </Dropdown>
           </div>
@@ -125,8 +177,7 @@ export default function MonthlyTarget() {
           </span>
         </div>
         <p className="mx-auto mt-10 w-full max-w-[380px] text-center text-sm text-gray-500 sm:text-base">
-          You earn $3287 today, it&apos;s higher than last month. Keep up your
-          good work!
+          You earned ${data.todayRevenue} today, continuing your progress towards the ${currentTarget.toLocaleString()} target. Keep up your good work!
         </p>
       </div>
 
@@ -136,7 +187,7 @@ export default function MonthlyTarget() {
             Target
           </p>
           <p className="flex items-center justify-center gap-1 text-base font-semibold text-gray-800 dark:text-white/90 sm:text-lg">
-            $20K
+            ${(currentTarget / 1000).toFixed(0)}K
             <svg
               width="16"
               height="16"
@@ -161,7 +212,7 @@ export default function MonthlyTarget() {
             Revenue
           </p>
           <p className="flex items-center justify-center gap-1 text-base font-semibold text-gray-800 dark:text-white/90 sm:text-lg">
-            $20K
+            ${currentRevenue.toLocaleString()}
             <svg
               width="16"
               height="16"
@@ -186,7 +237,7 @@ export default function MonthlyTarget() {
             Today
           </p>
           <p className="flex items-center justify-center gap-1 text-base font-semibold text-gray-800 dark:text-white/90 sm:text-lg">
-            $20K
+            ${data.todayRevenue.toLocaleString()}
             <svg
               width="16"
               height="16"

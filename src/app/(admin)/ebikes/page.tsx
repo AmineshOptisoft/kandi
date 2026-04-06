@@ -10,6 +10,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import Badge from "@/components/ui/badge/Badge";
+import { VEHICLE_STATUS } from "@/lib/constants";
 
 interface Vehicle {
   id: number;
@@ -30,7 +31,7 @@ const EMPTY_FORM = {
   model: "",
   type: "electric",
   battery: "100",
-  status: "available",
+  status: VEHICLE_STATUS.AVAILABLE,
 };
 
 export default function EbikesPage() {
@@ -173,8 +174,15 @@ export default function EbikesPage() {
     }
   };
 
-  const statusColor = (status: string) =>
-    status === "available" ? "success" : status === "in_use" ? "warning" : "dark";
+  const statusColor = (status: any) =>
+    (status === VEHICLE_STATUS.AVAILABLE || status === "available") ? "success" : (status === VEHICLE_STATUS.IN_USE || status === "in_use") ? "warning" : "dark";
+
+  const getStatusLabel = (status: any) => {
+    if (status === VEHICLE_STATUS.AVAILABLE || status === "available") return "Available";
+    if (status === VEHICLE_STATUS.IN_USE || status === "in_use") return "In Use";
+    if (status === VEHICLE_STATUS.MAINTENANCE || status === "maintenance") return "Maintenance";
+    return String(status).replace("_", " ");
+  };
 
   const batteryColor = (pct: number) =>
     pct >= 60 ? "text-success-600" : pct >= 30 ? "text-warning-500" : "text-error-500";
@@ -264,7 +272,7 @@ export default function EbikesPage() {
                     </TableCell>
                     <TableCell className="px-5 py-4 text-start">
                       <Badge size="sm" color={statusColor(v.status)}>
-                        {v.status.replace("_", " ")}
+                        {getStatusLabel(v.status)}
                       </Badge>
                     </TableCell>
                     <TableCell className="px-5 py-4 text-start">
@@ -409,10 +417,10 @@ export default function EbikesPage() {
 
             <div>
               <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Status</label>
-              <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })} className={inputCls}>
-                <option value="available">Available</option>
-                <option value="in_use">In Use</option>
-                <option value="maintenance">Maintenance</option>
+              <select value={form.status} onChange={(e) => setForm({ ...form, status: Number(e.target.value) })} className={inputCls}>
+                <option value={VEHICLE_STATUS.AVAILABLE}>Available</option>
+                <option value={VEHICLE_STATUS.IN_USE}>In Use</option>
+                <option value={VEHICLE_STATUS.MAINTENANCE}>Maintenance</option>
               </select>
             </div>
 

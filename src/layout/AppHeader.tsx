@@ -88,7 +88,7 @@ const AppHeader: React.FC = () => {
               <Image
                 width={32}
                 height={32}
-                src="/images/logo/Kadi-logo.png"
+                src="/images/logo/kandi-logo.png"
                 alt="Logo"
                 className="rounded-lg"
               />
