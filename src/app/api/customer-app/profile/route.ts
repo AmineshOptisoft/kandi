@@ -81,6 +81,10 @@ export async function GET(request: Request) {
  *                 type: string
  *               zip:
  *                 type: string
+ *               homeAddress:
+ *                 type: string
+ *               workAddress:
+ *                 type: string
  *     responses:
  *       200:
  *         description: Profile updated
@@ -98,7 +102,7 @@ export async function PUT(request: Request) {
       const decoded: any = jwt.verify(token, JWT_SECRET);
   
       const body = await request.json();
-      const { firstName, lastName, phone, street, city, state, zip } = body;
+      const { firstName, lastName, phone, street, city, state, zip, homeAddress, workAddress } = body;
   
       const updatedCustomer = await prisma.customer.update({
         where: { id: decoded.userId },
@@ -109,7 +113,9 @@ export async function PUT(request: Request) {
           street,
           city,
           state,
-          zip
+          zip,
+          homeAddress,
+          workAddress
         }
       });
   

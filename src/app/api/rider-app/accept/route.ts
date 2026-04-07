@@ -73,7 +73,11 @@ export async function POST(request: Request) {
     const result = await prisma.$transaction(async (tx) => {
       const updatedOrder = await tx.order.update({
         where: { id: parseInt(orderId) },
-        data: { riderId: parseInt(riderId), status: ORDER_STATUS.ACCEPTED },
+        data: { 
+          riderId: parseInt(riderId), 
+          status: ORDER_STATUS.ACCEPTED,
+          otp: Math.floor(1000 + Math.random() * 9000).toString()
+        },
         include: { customer: true }
       })
       
@@ -90,12 +94,13 @@ export async function POST(request: Request) {
     await publishNotification('ride-accepted', {
       orderId: parseInt(orderId),
       riderId: parseInt(riderId),
+      otp: result.otp,
       message: `✅ Ride accepted: Rider #${riderId} is heading to pick up Order #ORD-${orderId}.`
     });
 
     sendPushNotification({
       title: "Rider En Route 🚘",
-      message: `Your ride has been accepted! Your driver is heading to your pickup location.`,
+      message: `Your ride has been accepted! Your driver is heading to your pickup location. Your OTP is: ${result.otp}`,
       url: `/user/track/${orderId}`,
       userIds: [order.customerId.toString()]
     });
