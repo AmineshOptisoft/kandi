@@ -6,9 +6,14 @@ const prismaClientSingleton = () => {
     host: 'localhost',
     user: 'root',
     database: 'ev_fleet',
-    // add password: 'your_password' if needed
+    // increased connection limit directly
+    connectionLimit: 50,
+  } as any) // Casting as any to bypass strict type check on internal pool config
+
+  return new PrismaClient({ 
+    adapter,
+    log: ['error', 'warn'],
   })
-  return new PrismaClient({ adapter })
 }
 
 declare global {

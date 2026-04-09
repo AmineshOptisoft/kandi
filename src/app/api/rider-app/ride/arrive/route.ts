@@ -7,7 +7,22 @@ import prisma from '@/lib/prisma';
  *   post:
  *     tags:
  *       - Rider Actions
- *     summary: Notify customer that rider arrived
+ *     summary: "[STEP 2] Mark rider as arrived at pickup"
+ *     description: |
+ *       ## 📱 USE THIS FOR: Orders Tab — Step 2
+ *
+ *       **Rider has reached the customer's pickup location.** Call this API when rider taps "I've Arrived" button.
+ *
+ *       ### How to use:
+ *       - Show an "I've Arrived" button on the active order screen
+ *       - When rider taps it, call this API with `orderId` and `riderId`
+ *
+ *       ### What happens after this:
+ *       - Order status changes to `2` (Arrived)
+ *       - Customer is notified that rider has arrived
+ *
+ *       ### Next Step:
+ *       Show OTP input screen to rider. When rider enters customer's OTP, call **POST /api/rider-app/ride/start**
  *     requestBody:
  *       required: true
  *       content:
@@ -18,11 +33,15 @@ import prisma from '@/lib/prisma';
  *             properties:
  *               orderId:
  *                 type: integer
+ *                 description: Active order ID (from accept response)
+ *                 example: 1
  *               riderId:
  *                 type: integer
+ *                 description: Logged-in rider's ID
+ *                 example: 1
  *     responses:
  *       200:
- *         description: Marked as Arrived
+ *         description: Rider marked as arrived at pickup location
  */
 import { ORDER_STATUS } from '@/lib/constants';
 

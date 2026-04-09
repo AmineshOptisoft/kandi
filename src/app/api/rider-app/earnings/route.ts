@@ -7,18 +7,42 @@ import prisma from '@/lib/prisma';
  *   get:
  *     tags:
  *       - Rider Actions
- *     summary: Get rider earnings summary
- *     description: Returns total earnings, today's earnings, completed trip count, and recent order history.
+ *     summary: "[TRIPS TAB] Get rider earnings and trip history"
+ *     description: |
+ *       ## 📱 USE THIS FOR: Trips Tab
+ *
+ *       **Shows completed trips and earnings summary for the rider.**
+ *
+ *       ### How to use:
+ *       - Call this API when rider opens the **Trips tab**
+ *       - Pass `riderId` (from login response)
+ *
+ *       ### Response includes:
+ *       - `earnings.total` → All-time total earnings (₹)
+ *       - `earnings.today` → Today's earnings (₹)
+ *       - `earnings.thisWeek` → This week's earnings (₹)
+ *       - `earnings.todayTrips` → Number of trips completed today
+ *       - `earnings.totalTrips` → All-time trip count
+ *       - `recentOrders` → Last 10 completed rides (for the trips list)
+ *
+ *       ### recentOrders fields:
+ *       - `id` → Order ID
+ *       - `amount` → Fare earned for that ride (₹)
+ *       - `pickupLoc` → Pickup location name
+ *       - `dropLoc` → Drop location name
+ *       - `paymentMode` → Payment method used
+ *       - `createdAt` → Date/time of the ride
  *     parameters:
  *       - in: query
  *         name: riderId
  *         required: true
  *         schema:
  *           type: integer
- *         description: The rider ID
+ *         description: Logged-in rider's ID (from login response)
+ *         example: 1
  *     responses:
  *       200:
- *         description: Earnings fetched successfully
+ *         description: Earnings and trip history fetched successfully
  *       400:
  *         description: riderId is required
  *       404:

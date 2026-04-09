@@ -4,12 +4,14 @@ import { getSocket } from "@/lib/socket";
 import GlobalNotificationListener from "@/components/common/GlobalNotificationListener";
 import ForgotPasswordOtpForm from "@/components/auth/ForgotPasswordOtpForm";
 
+import { ORDER_STATUS, ORDER_STATUS_LABELS } from "@/lib/constants";
+
 type RidePhase = "idle" | "accepted" | "otp" | "started" | "completed";
 type Tab = "rides" | "orders" | "trips" | "profile";
 
 interface Order {
   id: number;
-  status: string;
+  status: string | number;
   otp?: string;
   amount?: number;
   paymentMode?: string;
@@ -99,6 +101,8 @@ export default function RiderDashboard() {
           setLoginStep("vehicle");
           // Skip login card on revisit and open dashboard directly.
           setIsLoggedIn(true);
+          const savedOnline = localStorage.getItem("sim_rider_online");
+          if (savedOnline === "true") setIsOnline(true);
         }
       }
     }
@@ -127,7 +131,12 @@ export default function RiderDashboard() {
       if (data.riderStatus === "busy") {
         if (data.activeOrder) {
           setCurrentOrder(data.activeOrder);
-          setPhase(data.activeOrder.status === "Started" ? "started" : "accepted");
+          const orderStatus = data.activeOrder.status;
+          if (orderStatus === ORDER_STATUS.STARTED) {
+            setPhase("started");
+          } else {
+            setPhase("accepted");
+          }
         }
       } else {
         if (phase === "idle") setPendingOrders(data.pendingOrders || []);
@@ -337,7 +346,9 @@ export default function RiderDashboard() {
   };
 
   const handleToggleOnlineStatus = () => {
-    setIsOnline(!isOnline);
+    const newStatus = !isOnline;
+    setIsOnline(newStatus);
+    localStorage.setItem("sim_rider_online", String(newStatus));
   };
 
   // ────────────────────────────────────────────────────────────────────────
@@ -753,8 +764,10 @@ export default function RiderDashboard() {
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
                           <p className="font-bold text-sm text-gray-800 dark:text-white">#ORD-{order.id?.toString().padStart(3, "0")}</p>
-                          <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${STATUS_COLORS[order.status] || "bg-gray-100 text-gray-600"}`}>
-                            {order.status}
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+                            STATUS_COLORS[typeof order.status === 'number' ? ORDER_STATUS_LABELS[order.status] : order.status] || "bg-gray-100 text-gray-600"
+                          }`}>
+                            {typeof order.status === 'number' ? ORDER_STATUS_LABELS[order.status] : order.status}
                           </span>
                         </div>
                         <div className="text-right">

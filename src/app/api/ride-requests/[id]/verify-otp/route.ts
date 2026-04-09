@@ -36,8 +36,10 @@ export async function POST(
       return NextResponse.json({ error: 'OTP can only be verified for Accepted/Arrived orders' }, { status: 400 })
     }
 
-    // Validate OTP
-    if (order.otp !== otp.toString()) {
+    // Validate OTP (convert both to string and trim to be safe)
+    console.log(`[DEBUG] Verifying OTP for Order ${orderId}: DB_OTP="${order.otp}", Input_OTP="${otp}"`);
+    
+    if (order.otp?.toString().trim() !== otp?.toString().trim()) {
       return NextResponse.json({ error: 'Invalid OTP. Please check again.' }, { status: 400 })
     }
 

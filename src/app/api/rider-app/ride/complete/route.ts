@@ -7,8 +7,32 @@ import prisma from '@/lib/prisma';
  *   post:
  *     tags:
  *       - Rider Actions
- *     summary: Complete a ride
- *     description: End the trip, mark order as Delivered (4), update vehicle battery, calculate final fare, and free the vehicle.
+ *     summary: "[STEP 4] Complete the ride"
+ *     description: |
+ *       ## 📱 USE THIS FOR: Orders Tab — Step 4 (Final Step)
+ *
+ *       **Rider completes the trip at the drop location.** Call this when rider taps "Complete Ride".
+ *
+ *       ### How to use:
+ *       - When rider reaches the drop location, show a "Complete Ride" button
+ *       - Send `orderId`, `riderId`, and `tripId` (tripId was returned from `/ride/start`)
+ *       - Optionally send `finalDistance` (in KM) and `batteryUsed` (%)
+ *
+ *       ### What happens after this:
+ *       - Order status changes to `4` (Delivered/Completed)
+ *       - Final fare is calculated: **₹50 base + ₹15 per KM**
+ *       - Trip is marked as completed with end time
+ *       - Vehicle is freed and battery is updated
+ *
+ *       ### Response includes:
+ *       - `order.amount` → Final fare amount (show this to rider)
+ *       - `trip.distance` → Total distance traveled
+ *       - `trip.fare` → Fare earned (same as order.amount)
+ *
+ *       ### ⚠️ Important:
+ *       - `tripId` comes from the response of **POST /api/rider-app/ride/start**
+ *       - After this, rider is free to accept new rides
+ *       - This ride will appear in **GET /api/rider-app/earnings** (Trips tab)
  *     requestBody:
  *       required: true
  *       content:
@@ -19,24 +43,27 @@ import prisma from '@/lib/prisma';
  *             properties:
  *               orderId:
  *                 type: integer
+ *                 description: Active order ID
  *                 example: 1
  *               riderId:
  *                 type: integer
+ *                 description: Logged-in rider's ID
  *                 example: 1
  *               tripId:
  *                 type: integer
+ *                 description: Trip ID from the /ride/start response (required!)
  *                 example: 1
  *               finalDistance:
  *                 type: number
- *                 description: Actual distance traveled in KM (optional, uses estimate if not provided)
+ *                 description: Actual distance in KM — if not sent, fare uses trip estimate
  *                 example: 12.5
  *               batteryUsed:
  *                 type: integer
- *                 description: Battery percentage consumed during trip
+ *                 description: Battery % consumed (default 10% if not sent)
  *                 example: 15
  *     responses:
  *       200:
- *         description: Ride completed successfully
+ *         description: Ride completed — returns final fare amount and trip summary
  *       400:
  *         description: Validation error
  *       404:
@@ -103,7 +130,8 @@ export async function POST(request: Request) {
     return NextResponse.json({
       message: 'Ride completed successfully!',
       order: { id: result.updatedOrder.id, status: result.updatedOrder.status, amount: result.updatedOrder.amount },
-      trip: { id: result.updatedTrip.id, distance: result.updatedTrip.distance, fare: result.updatedTrip.fare, endTime: result.updatedTrip.endTime }
+      trip: { id: result.updatedTrip.id, distance: result.updatedTrip.distance, fare: result.updatedTrip.fare, endTime: result.updatedTrip.endTime },
+      paymentMode: result.updatedOrder.paymentMode,
     });
   } catch (error) {
     console.error('Complete ride error:', error);

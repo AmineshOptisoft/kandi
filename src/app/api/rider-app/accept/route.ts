@@ -12,26 +12,54 @@ import { ORDER_STATUS, TRIP_STATUS, VEHICLE_STATUS } from '@/lib/constants'
  *   post:
  *     tags:
  *       - Rider Actions
- *     summary: Accept a pending ride
+ *     summary: "[STEP 1] Accept a pending ride"
+ *     description: |
+ *       ## 📱 USE THIS FOR: Orders Tab — Step 1
+ *
+ *       **Rider accepts a ride from the Rides tab.** This is the first action in the order lifecycle.
+ *
+ *       ### How to use:
+ *       - When rider taps "Accept" on a ride card, call this API
+ *       - Send `orderId` (from pending-rides response), `riderId` (from login), `vehicleId` (from profile)
+ *       - `vehicleId` is optional — if not sent, it will be auto-fetched from rider's assigned vehicle
+ *
+ *       ### What happens after this:
+ *       - Order status changes to `1` (Accepted)
+ *       - A 4-digit `otp` is generated and sent to customer
+ *       - Rider gets pickup location coordinates (`pickupLat`, `pickupLng`)
+ *       - Customer gets a push notification
+ *
+ *       ### Next Step:
+ *       Navigate rider to pickup location. When rider reaches, call **POST /api/rider-app/ride/arrive**
+ *
+ *       ### Error Cases:
+ *       - `"This ride has already been accepted"` → Another rider accepted first, refresh the rides list
+ *       - `"You are already on a trip"` → Rider must complete current trip first
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
- *             required: [orderId, riderId, vehicleId]
+ *             required: [orderId, riderId]
  *             properties:
  *               orderId:
  *                 type: integer
+ *                 description: ID of the ride to accept (from pending-rides API)
+ *                 example: 1
  *               riderId:
  *                 type: integer
+ *                 description: Logged-in rider's ID (from login response)
+ *                 example: 1
  *               vehicleId:
  *                 type: integer
+ *                 description: Rider's assigned vehicle ID (optional, auto-fetched if not sent)
+ *                 example: 1
  *     responses:
  *       200:
- *         description: Ride accepted
+ *         description: Ride accepted — returns order with OTP and pickup coordinates
  *       400:
- *         description: Validation error or rider busy
+ *         description: Validation error or ride already taken or rider busy
  *       404:
  *         description: Order not found
  */
@@ -75,8 +103,7 @@ export async function POST(request: Request) {
         where: { id: parseInt(orderId) },
         data: { 
           riderId: parseInt(riderId), 
-          status: ORDER_STATUS.ACCEPTED,
-          otp: Math.floor(1000 + Math.random() * 9000).toString()
+          status: ORDER_STATUS.ACCEPTED
         },
         include: { customer: true }
       })

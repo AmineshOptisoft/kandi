@@ -28,6 +28,29 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
  *     responses:
  *       200:
  *         description: Login successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 token:
+ *                   type: string
+ *                 rider:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: integer
+ *                     name:
+ *                       type: string
+ *                     phone:
+ *                       type: string
+ *                     status:
+ *                       type: integer
+ *                     assignedVehicleId:
+ *                       type: integer
+ *                       nullable: true
  *       400:
  *         description: Phone and password are required
  *       401:
@@ -76,6 +99,7 @@ export async function POST(request: Request) {
           name: rider.name,
           phone: rider.phone,
           status: rider.status,
+          assignedVehicleId: rider.assignedVehicleId,
         },
       });
     }
@@ -95,7 +119,8 @@ export async function POST(request: Request) {
         id: rider.id,
         name: rider.name,
         phone: rider.phone,
-        status: rider.status
+        status: rider.status,
+        assignedVehicleId: rider.assignedVehicleId
       }
     });
   } catch (error) {

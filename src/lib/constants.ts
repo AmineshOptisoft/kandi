@@ -6,7 +6,7 @@ export const ORDER_STATUS = {
   DELIVERED: 4,
   CANCELED: 5,
 };
-
+// 0: Pending, 1: Accepted, 2: Arrived, 3: Started, 4: Delivered, 5: Canceled
 export const ORDER_STATUS_LABELS: Record<number, string> = {
   0: "Pending",
   1: "Accepted",

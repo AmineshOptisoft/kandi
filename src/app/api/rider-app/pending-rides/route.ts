@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
+import { ORDER_STATUS, TRIP_STATUS } from '@/lib/constants'
 
 // GET /api/rider-app/pending-rides?riderId=X
 // Returns nearby pending ride orders for a rider
@@ -9,14 +10,37 @@ import prisma from '@/lib/prisma'
  *   get:
  *     tags:
  *       - Rider Actions
- *     summary: Get pending rides near rider
+ *     summary: "[RIDES TAB] Get available rides for rider"
+ *     description: |
+ *       ## 📱 USE THIS FOR: Rides Tab
+ *
+ *       **Step 1 of the ride flow.** Call this API to show available rides to the rider.
+ *
+ *       ### How to use:
+ *       - Call this API when the rider opens the **Rides tab**
+ *       - Pass the `riderId` to check rider's current status
+ *       - Poll this every 10-15 seconds to get fresh rides
+ *
+ *       ### Response Behavior:
+ *       - If rider is **free** → returns `pendingOrders` array (all available rides)
+ *       - If rider is **busy** (already on a trip) → returns `currentTrip` and `activeOrder`
+ *
+ *       ### Order Status Values:
+ *       - `0` = Pending (available for riders to accept)
+ *       - `1` = Accepted
+ *       - `2` = Arrived
+ *       - `3` = Started
+ *       - `4` = Delivered/Completed
+ *
+ *       ### Next Step:
+ *       After showing rides to rider, use **POST /api/rider-app/accept** when rider taps "Accept"
  *     parameters:
  *       - in: query
  *         name: riderId
  *         required: false
  *         schema:
  *           type: string
- *         description: The ID of the rider requesting pending rides
+ *         description: The ID of the logged-in rider (get from login response)
  *     responses:
  *       200:
  *         description: Successfully fetched pending rides
@@ -26,34 +50,41 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
     const riderId = parseInt(searchParams.get('riderId') || '0')
 
-    // Check if rider is already on a trip
+    // Check if rider is already on a trip or has an accepted order
     if (riderId) {
-      const ongoingTrip = await prisma.trip.findFirst({
-        where: { riderId, status: 3 },//'ongoing'
-        include: {
-          vehicle: true,
-          locationLogs: { orderBy: { timestamp: 'desc' }, take: 1 }
-        }
+      const activeOrder = await prisma.order.findFirst({
+        where: {
+          riderId,
+          status: { in: [ORDER_STATUS.ACCEPTED, ORDER_STATUS.ARRIVED, ORDER_STATUS.STARTED] }
+        },
+        include: { customer: true },
+        orderBy: { updatedAt: 'desc' }
       })
 
-      if (ongoingTrip) {
-        // Rider is busy — return their current order
-        const activeOrder = await prisma.order.findFirst({
-          where: { riderId, status: { in: [1, 2] } },//'Accepted', 'Started'
-          include: { customer: true },
-          orderBy: { updatedAt: 'desc' }
+      if (activeOrder) {
+        // Find the trip if it has started
+        const currentTrip = await prisma.trip.findFirst({
+          where: {
+            riderId,
+            status: TRIP_STATUS.ONGOING
+          },
+          include: {
+            vehicle: true,
+            locationLogs: { orderBy: { timestamp: 'desc' }, take: 1 }
+          }
         })
+
         return NextResponse.json({
           riderStatus: 'busy',
-          currentTrip: ongoingTrip,
-          activeOrder
+          currentTrip: currentTrip || null,
+          activeOrder: activeOrder
         })
       }
     }
 
     // Rider is free — return all Pending orders
     const pendingOrders = await prisma.order.findMany({
-      where: { status: 0 },//'Pending'
+      where: { status: ORDER_STATUS.PENDING },//'Pending'
       include: { customer: true },
       orderBy: { createdAt: 'desc' }
     })
