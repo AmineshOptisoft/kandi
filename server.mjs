@@ -60,8 +60,9 @@ app.prepare().then(() => {
     sub.on("message", (channel, message) => {
       if (channel === "ride-updates") {
         const data = JSON.parse(message);
-        console.log(`🔔 Notification: ${data.type} - Order #${data.orderId}`);
+        console.log(`[REDIS] Message in: ${data.type} - Order #${data.orderId}`);
         io.emit("notification", data);
+        console.log(`[SOCKET BROADCAST] "notification" event sent to all frontend users 🔥 ->`, data.type);
       }
     });
   }
@@ -83,6 +84,7 @@ app.prepare().then(() => {
     console.log(`📡 Connection: ${socket.id}`);
 
     socket.on("update-location", async (data) => {
+      console.log(`[SOCKET DEBUG] Frontend se update-location data receive hua ->`, data);
       const { riderId, lat, lng } = data;
       const area = await resolveArea(lat, lng);
       const enrichedData = { ...data, area, lastSeen: Date.now() };
@@ -105,9 +107,11 @@ app.prepare().then(() => {
       }).then(rider => {
         const finalData = { ...enrichedData, name: rider?.name || `Rider ${riderId}` };
         io.emit("rider-moved", finalData);
+        console.log(`[SOCKET BROADCAST] "rider-moved" event sent! (Rider: ${riderId})`);
       }).catch(e => {
         console.log("DB Persistence Error:", e.message);
         io.emit("rider-moved", enrichedData);
+        console.log(`[SOCKET BROADCAST] "rider-moved" event sent! (Rider: ${riderId}) (No DB Update)`);
       });
     });
 

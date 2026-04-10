@@ -10,8 +10,10 @@ try {
 }
 
 export const publishNotification = async (type: string, data: any) => {
-  if (!redis || redis.status !== "ready") return;
-  
+  if (!redis) {
+    console.warn("Redis not initialized. Skipping publish.");
+    return;
+  }
   const payload = JSON.stringify({
     type,       // 'new-booking', 'ride-accepted', 'trip-started', 'trip-completed'
     ...data,

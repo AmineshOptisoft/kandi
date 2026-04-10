@@ -63,7 +63,55 @@ export const getApiDocs = (type: 'rider' | 'customer' | 'all' = 'all') => {
     ];
     definition = getBaseDefinition(
       'Kandi Rider App API — React Native Reference',
-      'Complete API documentation for the Kandi Rider mobile app (React Native). Includes authentication, profile, ride lifecycle, GPS location sync, and earnings endpoints.',
+      `Complete API documentation for the Kandi Rider mobile app (React Native). Includes authentication, profile, ride lifecycle, GPS location sync, and earnings endpoints.
+
+### 🔌 Socket.io Realtime Implementation Guide (React Native)
+
+Follow these steps to connect your React Native app with our Socket Server:
+
+#### 1. Setup Connection & Listen for Notifications (On App Mount)
+Always initiate the connection when the app starts or the user logs in. **Keep this listener global** so you don't miss any ride request push.
+
+\`\`\`javascript
+import { io } from 'socket.io-client';
+
+// Init connection
+const socket = io('YOUR_API_BASE_URL', {
+  path: '/api/socket/io', // ⚠️ MANDATORY: our custom server path
+  transports: ['websocket'],
+});
+
+socket.on('connect', () => console.log('Socket Connected:', socket.id));
+
+// 🔔 Listen for ride updates (Ride Assiged, Cancelled etc)
+socket.on('notification', (data) => {
+  console.log('New Notification Received:', data);
+  // Example data: { type: "ride-status-update", orderId: "123", status: "PENDING" }
+});
+\`\`\`
+
+#### 2. Pushing Live Location (During Shift/Ride)
+When the driver goes online and the GPS service is running, send location updates to the server every few seconds.
+
+\`\`\`javascript
+// Emit location to the server
+socket.emit('update-location', { 
+  riderId: 10,  // Active Rider ID
+  lat: 28.6139, 
+  lng: 77.2090 
+});
+\`\`\`
+
+#### 3. Receiving Map Movements (On Map Screen)
+When you have the map open, listen for location broadcasts to draw/move markers smoothly.
+
+\`\`\`javascript
+socket.on('rider-moved', (locationData) => {
+  // locationData includes: riderId, lat, lng, area, name
+  console.log('Rider Map Position updated:', locationData);
+});
+\`\`\`
+`,
       riderTags
     );
   } else if (type === 'customer') {

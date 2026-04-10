@@ -13,8 +13,7 @@ export default function OneSignalInit() {
     }
 
     OneSignal.init({
-      appId: "c725be3b-b497-4e32-a6d6-9d8ed6420dd4",
-      safari_web_id: "web.onesignal.auto.257d0569-0e14-4d06-8d17-3d55d768ff68",
+      appId: process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID || "6545b854-7a84-4b75-90fe-9cf2c066ba58",
       allowLocalhostAsSecureOrigin: true,
     }).then(() => {
       console.log("[OneSignal] Initialized ✅");
