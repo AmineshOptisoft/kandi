@@ -49,8 +49,9 @@ function mapAgent(r: AgentRow) {
   const totalSettlement = num(r.settlement_amount);
   const lastSettlement = num(r.last_settlement_amount);
   const running = num(r.running_balance);
-  const finalBalance = running - security;
-  const remainingBalance = credit - finalBalance;
+  const previousBalance = num(r.previous_balance);
+  const finalBalance = previousBalance;
+  const remainingBalance = credit - (running - security);
 
   return {
     id: String(r.id),
@@ -84,7 +85,7 @@ export async function GET() {
     try {
       [rows] = await pool.execute<AgentRow[]>(
         `SELECT a.\`id\`, a.\`fullname\`, a.\`username\`, a.\`security_deposit\`, a.\`credit_limit\`,
-                a.\`net_pay_in\`, a.\`net_pay_out\`, a.\`running_balance\`, a.\`settlement_amount\`,
+                a.\`net_pay_in\`, a.\`net_pay_out\`, a.\`previous_balance\`, a.\`running_balance\`, a.\`settlement_amount\`,
                 a.\`pay_in_commission\`, a.\`pay_out_commission\`, a.\`referral_commission\`,
                 COALESCE(tx.\`agg_payin_approved\`, 0) AS agg_payin_approved,
                 COALESCE(tx.\`agg_payout_total\`, 0) AS agg_payout_total,
@@ -127,7 +128,7 @@ export async function GET() {
     } catch {
       [rows] = await pool.execute<AgentRow[]>(
         `SELECT a.\`id\`, a.\`fullname\`, a.\`username\`, a.\`security_deposit\`, a.\`credit_limit\`,
-                a.\`net_pay_in\`, a.\`net_pay_out\`, a.\`running_balance\`, a.\`settlement_amount\`,
+                a.\`net_pay_in\`, a.\`net_pay_out\`, a.\`previous_balance\`, a.\`running_balance\`, a.\`settlement_amount\`,
                 a.\`pay_in_commission\`, a.\`pay_out_commission\`, a.\`referral_commission\`,
                 COALESCE(tx.\`agg_payin_approved\`, 0) AS agg_payin_approved,
                 COALESCE(tx.\`agg_payout_total\`, 0) AS agg_payout_total,

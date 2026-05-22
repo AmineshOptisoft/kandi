@@ -14,12 +14,22 @@ import {
   HiUser,
   HiUserCircle,
   HiUsers,
+  HiLockClosed,
 } from "react-icons/hi2";
 
 const NAV_CLS = "h-5 w-5 shrink-0";
 const PAGE_CLS = "h-6 w-6 shrink-0";
 
 type IconProps = { className?: string };
+
+/** SecurityLog */
+export function SecurityLogIcon({ className = PAGE_CLS }: IconProps) {
+  return <HiLockClosed className={className} aria-hidden />;
+}
+
+export function NavSecurityLogIcon() {
+  return <SecurityLogIcon className={NAV_CLS} />;
+}
 
 /** AdminDashboard */
 export function AdminDashboardIcon({ className = PAGE_CLS }: IconProps) {

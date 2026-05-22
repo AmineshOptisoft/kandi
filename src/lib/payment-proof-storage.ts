@@ -37,7 +37,7 @@ export async function persistPaymentProofImage(raw: string, txId: number): Promi
 
   let mime = "image/jpeg";
   let b64 = v;
-  const dataMatch = /^data:([^;]+);base64,(.+)$/is.exec(v);
+  const dataMatch = /^data:([^;]+);base64,(.+)$/i.exec(v);
   if (dataMatch) {
     mime = dataMatch[1].toLowerCase();
     b64 = dataMatch[2];

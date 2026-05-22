@@ -3,18 +3,168 @@
 import React, { useRef, useState } from "react";
 import { Modal } from "@/components/ui/modal";
 
-export type SubadminOption = { id: string; name: string; security?: number; credit?: number };
+export type SubadminOption = {
+  id: string;
+  name: string;
+  security?: number;
+  credit?: number;
+  running?: number;
+  totalSettlement?: number;
+  finalBalance?: number;
+};
 
-function AgentBalanceInfo({ agent }: { agent?: SubadminOption }) {
+function AgentBalanceInfo({
+  agent,
+  amount,
+  mode,
+}: {
+  agent?: SubadminOption;
+  amount?: string;
+  mode?: {
+    type: "security" | "settlement" | "credit" | "running";
+    action: "plus" | "minus";
+  };
+}) {
   if (!agent) return null;
+  const runningVal = agent.running ?? 0;
+  const securityVal = agent.security ?? 0;
+  const creditVal = agent.credit ?? 0;
+  const settlementVal = agent.totalSettlement ?? 0;
+  const previewBalanceVal = agent.finalBalance ?? 0;
+
+  const inputAmt = parseFloat(amount || "0") || 0;
+
+  let currentVal = 0;
+  let fieldLabelText = "";
+  let badgeColor = "";
+
+  if (mode) {
+    if (mode.type === "security") {
+      currentVal = securityVal;
+      fieldLabelText = "Security Deposit";
+      badgeColor = "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300";
+    } else if (mode.type === "credit") {
+      currentVal = creditVal;
+      fieldLabelText = "Credit Limit";
+      badgeColor = "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300";
+    } else if (mode.type === "settlement") {
+      currentVal = settlementVal;
+      fieldLabelText = "Settlement Balance";
+      badgeColor = "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300";
+    } else if (mode.type === "running") {
+      currentVal = runningVal;
+      fieldLabelText = "Running Balance";
+      badgeColor = "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300";
+    }
+  }
+
+  const delta = mode ? (mode.action === "plus" ? inputAmt : -inputAmt) : 0;
+  const projectedVal = currentVal + delta;
+
+  // Let's compute projected preview balance
+  let projRunning = runningVal;
+  let projSecurity = securityVal;
+  let projSettlement = settlementVal;
+
+  if (mode && inputAmt > 0) {
+    const deltaVal = mode.action === "plus" ? inputAmt : -inputAmt;
+    if (mode.type === "running") {
+      projRunning = runningVal + deltaVal;
+    } else if (mode.type === "security") {
+      projSecurity = securityVal + deltaVal;
+    } else if (mode.type === "settlement") {
+      // Settlement always increases settlement_amount by absolute amount
+      projSettlement = settlementVal + inputAmt;
+      // But it updates running_balance: running_balance - signed
+      // Debit (action === "minus"): running_balance - (-amount) = running_balance + amount
+      // Credit (action === "plus"): running_balance - amount
+      if (mode.action === "minus") {
+        projRunning = runningVal + inputAmt;
+      } else {
+        projRunning = runningVal - inputAmt;
+      }
+    }
+  }
+
   return (
-    <div className="mb-2 flex gap-3 text-[11px] font-medium">
-      <span className="rounded-md bg-blue-50 px-2 py-1 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
-        Current Deposit: ₹{agent.security?.toLocaleString("en-IN") ?? 0}
-      </span>
-      <span className="rounded-md bg-purple-50 px-2 py-1 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400">
-        Credit Limit: ₹{agent.credit?.toLocaleString("en-IN") ?? 0}
-      </span>
+    <div className="mb-3 space-y-3 rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/30 p-3">
+      {/* Current Balances Grid */}
+      <div className="grid grid-cols-2 gap-2 text-[11px] font-semibold text-gray-500 dark:text-gray-400">
+        <div>Current Balances</div>
+        <div className="text-right">Value</div>
+      </div>
+      <div className="space-y-1 text-[10px] font-medium text-gray-700 dark:text-gray-300">
+        <div className="flex justify-between py-0.5 border-b border-gray-100 dark:border-gray-800 last:border-0">
+          <span>Security Deposit:</span>
+          <span className="font-semibold text-gray-900 dark:text-white">
+            ₹{securityVal.toLocaleString("en-IN")}
+            {projSecurity !== securityVal && (
+              <span className="ml-1 text-[9px] text-amber-600 dark:text-amber-400">
+                → ₹{projSecurity.toLocaleString("en-IN")}
+              </span>
+            )}
+          </span>
+        </div>
+        <div className="flex justify-between py-0.5 border-b border-gray-100 dark:border-gray-800 last:border-0">
+          <span>Credit Limit:</span>
+          <span className="font-semibold text-gray-900 dark:text-white">
+            ₹{creditVal.toLocaleString("en-IN")}
+            {mode?.type === "credit" && inputAmt > 0 && (
+              <span className="ml-1 text-[9px] text-amber-600 dark:text-amber-400">
+                → ₹{projectedVal.toLocaleString("en-IN")}
+              </span>
+            )}
+          </span>
+        </div>
+        <div className="flex justify-between py-0.5 border-b border-gray-100 dark:border-gray-800 last:border-0">
+          <span>Running Balance:</span>
+          <span className="font-semibold text-gray-900 dark:text-white">
+            ₹{runningVal.toLocaleString("en-IN")}
+            {projRunning !== runningVal && (
+              <span className="ml-1 text-[9px] text-amber-600 dark:text-amber-400">
+                → ₹{projRunning.toLocaleString("en-IN")}
+              </span>
+            )}
+          </span>
+        </div>
+        <div className="flex justify-between py-0.5 border-b border-gray-100 dark:border-gray-800 last:border-0">
+          <span>Settlement Balance:</span>
+          <span className="font-semibold text-gray-900 dark:text-white">
+            ₹{settlementVal.toLocaleString("en-IN")}
+            {projSettlement !== settlementVal && (
+              <span className="ml-1 text-[9px] text-amber-600 dark:text-amber-400">
+                → ₹{projSettlement.toLocaleString("en-IN")}
+              </span>
+            )}
+          </span>
+        </div>
+        <div className="flex justify-between py-1 border-t border-dashed border-gray-200 dark:border-gray-700 mt-1.5 pt-1.5">
+          <span className="font-semibold text-amber-700 dark:text-amber-400">Preview Balance (Yesterday's Running):</span>
+          <span className="font-bold text-amber-800 dark:text-amber-300">
+            ₹{previewBalanceVal.toLocaleString("en-IN")}
+          </span>
+        </div>
+      </div>
+
+      {/* Dynamic Live Preview / Projection */}
+      {mode && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50/50 dark:border-amber-900/30 dark:bg-amber-950/20 p-2.5 mt-2">
+          <div className="flex items-center justify-between text-xs">
+            <span className="font-semibold text-amber-800 dark:text-amber-300">Projected {fieldLabelText}:</span>
+            <span className={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase ${badgeColor}`}>
+              {mode.action === "plus" ? "Credit (+)" : "Debit (-)"}
+            </span>
+          </div>
+          <div className="mt-1 flex items-baseline justify-between">
+            <span className="text-[10px] text-gray-500 dark:text-gray-400">
+              ₹{currentVal.toLocaleString("en-IN")} {mode.action === "plus" ? "+" : "-"} ₹{inputAmt.toLocaleString("en-IN")}
+            </span>
+            <span className="text-sm font-bold text-amber-950 dark:text-amber-200">
+              ₹{projectedVal.toLocaleString("en-IN")}
+            </span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -136,11 +286,10 @@ function CsvDropZone({
           setDragOver(false);
           pick(e.dataTransfer.files[0]);
         }}
-        className={`flex cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed px-6 py-10 transition-colors ${
-          dragOver
-            ? "border-brand-400 bg-brand-50/50 dark:border-brand-500 dark:bg-brand-500/10"
-            : "border-gray-300 bg-gray-50/80 dark:border-gray-700 dark:bg-gray-900/40"
-        }`}
+        className={`flex cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed px-6 py-10 transition-colors ${dragOver
+          ? "border-brand-400 bg-brand-50/50 dark:border-brand-500 dark:bg-brand-500/10"
+          : "border-gray-300 bg-gray-50/80 dark:border-gray-700 dark:bg-gray-900/40"
+          }`}
       >
         <input
           ref={inputRef}
@@ -215,7 +364,6 @@ function TxTypeRadios({
         <label key={opt} className="inline-flex cursor-pointer items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
           <input
             type="radio"
-            name="tx-type"
             checked={value === opt}
             onChange={() => onChange(opt)}
             className="h-4 w-4 border-gray-300 text-brand-500 focus:ring-brand-500/30"
@@ -242,10 +390,12 @@ export function InterledgerEntryModal({
   isOpen,
   onClose,
   subadmins,
+  onSuccess,
 }: {
   isOpen: boolean;
   onClose: () => void;
   subadmins: SubadminOption[];
+  onSuccess?: () => void;
 }) {
   const [transferDate, setTransferDate] = useState(() => todayInputDate());
   const [sourceId, setSourceId] = useState("");
@@ -301,7 +451,7 @@ export function InterledgerEntryModal({
         return;
       }
       handleClose();
-      // Optional: you can trigger a refresh function here if passed in props
+      onSuccess?.();
     } catch (err) {
       setError("Network error occurred.");
       setBusy(false);
@@ -381,7 +531,28 @@ export function InterledgerEntryModal({
 
         <div>
           <label className={fieldLabel}>Transfer Amount</label>
-          <AgentBalanceInfo agent={subadmins.find(s => s.id === sourceId)} />
+          {/* <div className="space-y-4">
+            {sourceId && (
+              <div>
+                <span className="mb-1 block text-xs font-semibold text-red-600 dark:text-red-400">Debit Source preview</span>
+                <AgentBalanceInfo 
+                  agent={subadmins.find(s => s.id === sourceId)} 
+                  amount={amount}
+                  mode={{ type: sourceType, action: "minus" }}
+                />
+              </div>
+            )}
+            {destId && (
+              <div>
+                <span className="mb-1 block text-xs font-semibold text-green-600 dark:text-green-400">Credit Destination preview</span>
+                <AgentBalanceInfo 
+                  agent={subadmins.find(s => s.id === destId)} 
+                  amount={amount}
+                  mode={{ type: destType, action: "plus" }}
+                />
+              </div>
+            )}
+          </div> */}
           <input
             type="text"
             inputMode="decimal"
@@ -413,10 +584,12 @@ export function SecurityDepositModal({
   isOpen,
   onClose,
   subadmins,
+  onSuccess,
 }: {
   isOpen: boolean;
   onClose: () => void;
   subadmins: SubadminOption[];
+  onSuccess?: () => void;
 }) {
   const [subadminId, setSubadminId] = useState("");
   const [depositDate, setDepositDate] = useState(() => todayInputDate());
@@ -456,6 +629,7 @@ export function SecurityDepositModal({
         return;
       }
       handleClose();
+      onSuccess?.();
     } catch (err) {
       setError("Network error occurred.");
       setBusy(false);
@@ -490,7 +664,11 @@ export function SecurityDepositModal({
         </div>
         <div>
           <label className={fieldLabel}>Amount</label>
-          <AgentBalanceInfo agent={subadmins.find(s => s.id === subadminId)} />
+          {/* <AgentBalanceInfo
+            agent={subadmins.find(s => s.id === subadminId)}
+            amount={amount}
+            mode={{ type: "security", action: txType === "credit" ? "plus" : "minus" }}
+          /> */}
           <input
             type="text"
             inputMode="decimal"
@@ -524,10 +702,12 @@ export function SettlementModal({
   isOpen,
   onClose,
   subadmins,
+  onSuccess,
 }: {
   isOpen: boolean;
   onClose: () => void;
   subadmins: SubadminOption[];
+  onSuccess?: () => void;
 }) {
   const [subadminId, setSubadminId] = useState("");
   const [settlementDate, setSettlementDate] = useState(() => todayInputDate());
@@ -589,6 +769,7 @@ export function SettlementModal({
         return;
       }
       handleClose();
+      onSuccess?.();
     } catch (err) {
       setError("Network error occurred.");
       setBusy(false);
@@ -623,6 +804,11 @@ export function SettlementModal({
         </div>
         <div>
           <label className={fieldLabel}>Amount</label>
+          {/* <AgentBalanceInfo
+            agent={subadmins.find(s => s.id === subadminId)}
+            amount={amount}
+            mode={{ type: "settlement", action: txType === "credit" ? "plus" : "minus" }}
+          /> */}
           <input
             type="text"
             inputMode="decimal"

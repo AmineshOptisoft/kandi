@@ -2,10 +2,10 @@ import { NextResponse } from "next/server";
 import type { ResultSetHeader, RowDataPacket } from "mysql2/promise";
 import { pool } from "@/lib/db";
 import {
-  parseSpeedpayWebhook,
   readWebhookSignature,
   verifySpeedpayWebhookSignature,
   webhookToInternalStatus,
+  parseAndVerifyPayinWebhook,
 } from "@/lib/integrations/speedpay/webhook";
 
 type TxRow = RowDataPacket & {
@@ -27,17 +27,24 @@ export async function POST(req: Request) {
   const raw = await req.text();
   const signature = readWebhookSignature(req);
 
-  if (!verifySpeedpayWebhookSignature(raw, signature)) {
-    return NextResponse.json({ success: false, message: "Invalid signature" }, { status: 401 });
+  const body = await parseAndVerifyPayinWebhook(req, raw);
+  console.log("[Speedpay Webhook] Request body:", JSON.stringify(body));
+  if (!body) {
+    return NextResponse.json({ success: false, message: "Invalid signature or webhook payload" }, { status: 401 });
   }
 
-  const body = parseSpeedpayWebhook(raw);
   const payinId = body.data?.id;
   const transactionNumber = String(body.data?.transaction_number || "").trim();
   const referenceNumber = body.data?.reference_number ? String(body.data.reference_number).trim() : "";
   const image = body.data?.image ? String(body.data.image).trim() : "";
+  const noteStr = (body.note ?? body.data?.note) as string | undefined;
 
   if (!transactionNumber && (!payinId || payinId < 1)) {
+    // Accept payloads that only contain a note with company ID (e.g., "company:15|...")
+    // if (noteStr) {
+    //   console.log("[Speedpay Webhook] No IDs but note present – accepting webhook");
+    //   return NextResponse.json({ success: true, message: "Webhook processed (no transaction ID)" });
+    // }
     return NextResponse.json({ success: false, message: "transaction_number or data.id is required" }, { status: 400 });
   }
 

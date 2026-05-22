@@ -6,6 +6,8 @@ import { emitTransactionRealtime } from "@/lib/realtime/broadcast-transaction";
 import { canAdminAssign } from "@/lib/payout-lifecycle";
 import { AGENT_BLOCKED_ASSIGN_MSG, isAgentActiveForAssignment } from "@/lib/party-status";
 import { requireAdminSession } from "@/lib/require-admin-api";
+import { getPayoutAgentApproveDelayMinutesFromEnv } from "@/lib/payout-agent-approve-delay";
+import { REQUEST_EXPIRE_MINUTES } from "@/lib/request-expiry";
 
 type TxRow = RowDataPacket & {
   id: number;
@@ -167,11 +169,18 @@ export async function POST(req: Request, context: { params: { id: string } | Pro
       }
     }
 
+    const delayMin = getPayoutAgentApproveDelayMinutesFromEnv();
+    const totalMinutes = delayMin + REQUEST_EXPIRE_MINUTES;
+
     const [res] = await conn.execute<ResultSetHeader>(
       `UPDATE \`transactions\`
-       SET \`assigned_agent_id\` = ?, \`pay_method_id\` = ?, \`status\` = 'PENDING', \`assigned_date\` = NOW()
+       SET \`assigned_agent_id\` = ?,
+           \`pay_method_id\` = ?,
+           \`status\` = 'PENDING',
+           \`assigned_date\` = NOW(),
+           \`expires_at\` = DATE_ADD(NOW(), INTERVAL ? MINUTE)
        WHERE \`id\` = ? AND \`type\` = 'PAYOUT'`,
-      [agentId, resolvedPayMethodId, txId],
+      [agentId, resolvedPayMethodId, totalMinutes, txId],
     );
 
     if (res.affectedRows === 0) {
@@ -181,6 +190,14 @@ export async function POST(req: Request, context: { params: { id: string } | Pro
 
     await conn.commit();
     emitTransactionRealtime(txId, "assign");
+
+    // Dispatch outbound webhook to merchant
+    try {
+      const { sendPayoutWebhookForTxStatusChange } = await import("@/lib/integrations/speedpay/outbound-payout-webhook");
+      void sendPayoutWebhookForTxStatusChange(txId, "PENDING");
+    } catch (e) {
+      console.error("Failed to trigger outbound webhook on assignment:", e);
+    }
   } catch (e) {
     await conn.rollback();
     throw e;

@@ -60,6 +60,7 @@ async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
   });
   const json = (await res.json().catch(() => ({}))) as JsonRecord;
   if (!res.ok) {
+    console.error("Speedpay request failed", json);
     const msg = typeof json.message === "string" ? json.message : "Speedpay request failed";
     throw new Error(msg);
   }
@@ -67,15 +68,17 @@ async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export async function speedpayInitializePayin(input: SpeedpayInitPayinInput): Promise<SpeedpayInitPayinResponse> {
-  return requestJson<SpeedpayInitPayinResponse>("/payin/create", {
+  return requestJson<SpeedpayInitPayinResponse>("", {
     method: "POST",
     body: JSON.stringify(input),
   });
 }
 
-export async function speedpayGetPayinStatusById(id: number): Promise<SpeedpayPayinStatusResponse> {
+// Log only on failure
+function logIfFailed(json: JsonRecord, ok: boolean) {
+  if (!ok) console.error("Speedpay request failed", json);
+}export async function speedpayGetPayinStatusById(id: number): Promise<SpeedpayPayinStatusResponse> {
   return requestJson<SpeedpayPayinStatusResponse>(`/payin/status/${id}`, {
     method: "GET",
   });
 }
-

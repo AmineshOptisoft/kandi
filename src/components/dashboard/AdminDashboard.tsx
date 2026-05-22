@@ -3,6 +3,7 @@ import React, { useCallback, useEffect, useMemo, useState, useRef, useLayoutEffe
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { useTransactionRealtimeRefresh } from "@/hooks/useTransactionRealtimeRefresh";
 import { csvExportTimestamp, downloadCsv } from "@/lib/csv-download";
 import {
   CommissionSettlementCsvModal,
@@ -231,14 +232,12 @@ type StatsColKey =
   | "payInToday"
   | "payoutToday"
   | "running"
+  | "finalBalance"
   | "totalSettlement"
   | "lastSettlement"
-  | "payInCommissionPct"
-  | "payInCommissionAmount"
-  | "payOutCommissionPct"
-  | "payOutCommissionAmount"
-  | "referralCommissionPct"
-  | "referralCommissionAmount"
+  | "payInCommission"
+  | "payOutCommission"
+  | "referralCommission"
   | "credit"
   | "actions";
 
@@ -250,14 +249,12 @@ const FIN_STATS_COLUMNS: { key: StatsColKey; label: string }[] = [
   { key: "payInToday", label: "PayIn (today)" },
   { key: "payoutToday", label: "Payout (today)" },
   { key: "running", label: "Running" },
+  { key: "finalBalance", label: "Preview Balance" },
   { key: "totalSettlement", label: "Total Settlement" },
   { key: "lastSettlement", label: "Last Settlement" },
-  { key: "payInCommissionPct", label: "PayIn Commission (%)" },
-  { key: "payInCommissionAmount", label: "PayIn Commission (amount)" },
-  { key: "payOutCommissionPct", label: "PayOut Commission (%)" },
-  { key: "payOutCommissionAmount", label: "PayOut Commission (amount)" },
-  { key: "referralCommissionPct", label: "Referral Commission (%)" },
-  { key: "referralCommissionAmount", label: "Referral Commission (amount)" },
+  { key: "payInCommission", label: "PayIn Commission" },
+  { key: "payOutCommission", label: "PayOut Commission" },
+  { key: "referralCommission", label: "Referral Commission" },
   { key: "credit", label: "Credit" },
   { key: "actions", label: "Actions" },
 ];
@@ -280,6 +277,15 @@ function isInactiveVendorRow(r: VendorRow): boolean {
 function vendorRowCsvCell(row: VendorRow, key: StatsColKey): string {
   if (key === "vendor") return row.name;
   if (key === "actions") return "";
+  if (key === "payInCommission") {
+    return `${fmtPct(row.payInCommissionPct)} (${row.payInCommissionAmount})`;
+  }
+  if (key === "payOutCommission") {
+    return `${fmtPct(row.payOutCommissionPct)} (${row.payOutCommissionAmount})`;
+  }
+  if (key === "referralCommission") {
+    return `${fmtPct(row.referralCommissionPct)} (${row.referralCommissionAmount})`;
+  }
   const v = row[key as keyof VendorRow];
   if (typeof v === "number") return String(v);
   return String(v ?? "");
@@ -290,13 +296,11 @@ type SortDir = "asc" | "desc";
 const COLUMN_HEADER_TITLES: Partial<Record<StatsColKey, string>> = {
   credit:
     "Extra PayIn headroom beyond the security pool: allowed exposure even when deposit-backed room is used up.",
-  payInCommissionAmount: "PayIn (today) × PayIn commission %",
-  payOutCommissionAmount: "Payout (today) × PayOut commission %",
-  referralCommissionAmount: "PayIn (today) × Referral commission %",
-  payInCommissionPct: "Agent PayIn commission rate",
-  payOutCommissionPct: "Agent PayOut commission rate",
-  referralCommissionPct: "Agent referral commission rate",
+  payInCommission: "Agent PayIn commission rate (percentage) and today's amount (PayIn today × commission %)",
+  payOutCommission: "Agent PayOut commission rate (percentage) and today's amount (Payout today × commission %)",
+  referralCommission: "Agent referral commission rate (percentage) and today's amount (PayIn today × commission %)",
   lastSettlement: "Amount from the agent's most recent settled settlement record",
+  finalBalance: "Preview Balance = Yesterday's Running Balance",
 };
 
 const COLUMNS_WITH_INFO_ICON = new Set<StatsColKey>([
@@ -304,20 +308,33 @@ const COLUMNS_WITH_INFO_ICON = new Set<StatsColKey>([
   "totalPayout",
   "payInToday",
   "payoutToday",
-  "payInCommissionPct",
-  "payInCommissionAmount",
-  "payOutCommissionPct",
-  "payOutCommissionAmount",
-  "referralCommissionPct",
-  "referralCommissionAmount",
+  "payInCommission",
+  "payOutCommission",
+  "referralCommission",
   "lastSettlement",
+  "finalBalance",
 ]);
 
 function compareVendorRows(a: VendorRow, b: VendorRow, key: StatsColKey, dir: SortDir): number {
-  let cmp =
-    key === "vendor"
-      ? a.name.localeCompare(b.name, undefined, { sensitivity: "base", numeric: true })
-      : (a[key as keyof VendorRow] as number) - (b[key as keyof VendorRow] as number);
+  let valA: number;
+  let valB: number;
+  if (key === "vendor") {
+    let cmp = a.name.localeCompare(b.name, undefined, { sensitivity: "base", numeric: true });
+    return dir === "asc" ? cmp : -cmp;
+  } else if (key === "payInCommission") {
+    valA = a.payInCommissionAmount;
+    valB = b.payInCommissionAmount;
+  } else if (key === "payOutCommission") {
+    valA = a.payOutCommissionAmount;
+    valB = b.payOutCommissionAmount;
+  } else if (key === "referralCommission") {
+    valA = a.referralCommissionAmount;
+    valB = b.referralCommissionAmount;
+  } else {
+    valA = a[key as keyof VendorRow] as number;
+    valB = b[key as keyof VendorRow] as number;
+  }
+  let cmp = valA - valB;
   if (cmp === 0) {
     cmp = a.name.localeCompare(b.name, undefined, { sensitivity: "base", numeric: true });
   }
@@ -495,6 +512,12 @@ export default function AdminDashboard() {
     void load();
   }, [load]);
 
+  useTransactionRealtimeRefresh({
+    onRefresh: () => {
+      void load();
+    },
+  });
+
   const totals = useMemo(() => {
     const z: Omit<VendorRow, "id" | "name"> = {
       security: 0,
@@ -556,6 +579,7 @@ export default function AdminDashboard() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ credit_limit: next }),
       });
+      void load();
     } catch (e) {
       console.error("Failed to update credit limit", e);
     }
@@ -692,7 +716,16 @@ export default function AdminDashboard() {
   ];
 
   const subadminOptions = useMemo(
-    () => rows.map((r) => ({ id: r.id, name: r.name, security: r.security, credit: r.credit })),
+    () =>
+      rows.map((r) => ({
+        id: r.id,
+        name: r.name,
+        security: r.security,
+        credit: r.credit,
+        running: r.running,
+        totalSettlement: r.totalSettlement,
+        finalBalance: r.finalBalance,
+      })),
     [rows],
   );
 
@@ -783,7 +816,7 @@ export default function AdminDashboard() {
             <h1 className="text-xl font-bold text-gray-900 dark:text-white">Admin Dashboard</h1>
           </div>
           <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5 ml-7">
-            Live agent balances from the database — columns without data stay at 0 (nothing is hidden).
+            Live agent balances from the database — columns without data stay
           </p>
         </div>
 
@@ -1052,14 +1085,12 @@ export default function AdminDashboard() {
                   <td className={`${colCell} font-bold text-blue-600 dark:text-blue-400${xh("payInToday")}${xv("payInToday")}`}>{totals.payInToday.toLocaleString("en-IN")}</td>
                   <td className={`${colCell} font-bold text-orange-500${xh("payoutToday")}${xv("payoutToday")}`}>{totals.payoutToday.toLocaleString("en-IN")}</td>
                   <td className={`${colCell}${xh("running")}${xv("running")}`}>{badge(totals.running)}</td>
+                  <td className={`${colCell}${xh("finalBalance")}${xv("finalBalance")}`}>{badge(totals.finalBalance)}</td>
                   <td className={`${colCell}${xh("totalSettlement")}${xv("totalSettlement")}`}>{totals.totalSettlement.toLocaleString("en-IN")}</td>
                   <td className={`${colCell}${xh("lastSettlement")}${xv("lastSettlement")}`}>{totals.lastSettlement.toLocaleString("en-IN")}</td>
-                  <td className={`${colCell} text-gray-400${xh("payInCommissionPct")}${xv("payInCommissionPct")}`}>—</td>
-                  <td className={`${colCell} font-semibold text-emerald-600 dark:text-emerald-400${xh("payInCommissionAmount")}${xv("payInCommissionAmount")}`}>{totals.payInCommissionAmount.toLocaleString("en-IN")}</td>
-                  <td className={`${colCell} text-gray-400${xh("payOutCommissionPct")}${xv("payOutCommissionPct")}`}>—</td>
-                  <td className={`${colCell} font-semibold text-emerald-600 dark:text-emerald-400${xh("payOutCommissionAmount")}${xv("payOutCommissionAmount")}`}>{totals.payOutCommissionAmount.toLocaleString("en-IN")}</td>
-                  <td className={`${colCell} text-gray-400${xh("referralCommissionPct")}${xv("referralCommissionPct")}`}>—</td>
-                  <td className={`${colCell} font-semibold text-emerald-600 dark:text-emerald-400${xh("referralCommissionAmount")}${xv("referralCommissionAmount")}`}>{totals.referralCommissionAmount.toLocaleString("en-IN")}</td>
+                  <td className={`${colCell} font-semibold text-emerald-600 dark:text-emerald-400${xh("payInCommission")}${xv("payInCommission")}`}>— ({totals.payInCommissionAmount.toLocaleString("en-IN")})</td>
+                  <td className={`${colCell} font-semibold text-emerald-600 dark:text-emerald-400${xh("payOutCommission")}${xv("payOutCommission")}`}>— ({totals.payOutCommissionAmount.toLocaleString("en-IN")})</td>
+                  <td className={`${colCell} font-semibold text-emerald-600 dark:text-emerald-400${xh("referralCommission")}${xv("referralCommission")}`}>— ({totals.referralCommissionAmount.toLocaleString("en-IN")})</td>
                   <td className={`${colCell} font-bold text-blue-600 dark:text-blue-400${xh("credit")}${xv("credit")}`}>{totals.credit.toLocaleString("en-IN")}</td>
                   <td className={`${colCell} ${colActions}${xh("actions")}${xv("actions")}`}></td>
                 </tr>
@@ -1087,14 +1118,18 @@ export default function AdminDashboard() {
                     <td className={`${colCell}${xh("payInToday")}${xv("payInToday")}`}>{row.payInToday > 0 ? row.payInToday.toLocaleString("en-IN") : "0"}</td>
                     <td className={`${colCell}${xh("payoutToday")}${xv("payoutToday")}`}>{row.payoutToday > 0 ? row.payoutToday.toLocaleString("en-IN") : "0"}</td>
                     <td className={`${colCell}${xh("running")}${xv("running")}`}>{badge(row.running)}</td>
+                    <td className={`${colCell}${xh("finalBalance")}${xv("finalBalance")}`}>{badge(row.finalBalance)}</td>
                     <td className={`${colCell}${xh("totalSettlement")}${xv("totalSettlement")}`}>{colorVal(row.totalSettlement, true)}</td>
-                    <td className={`${colCell}${xh("lastSettlement")}${xv("lastSettlement")}`}>{row.lastSettlement > 0 ? row.lastSettlement.toLocaleString("en-IN") : "0"}</td>
-                    <td className={`${colCell}${xh("payInCommissionPct")}${xv("payInCommissionPct")}`}>{fmtPct(row.payInCommissionPct)}</td>
-                    <td className={`${colCell}${xh("payInCommissionAmount")}${xv("payInCommissionAmount")}`}>{colorVal(row.payInCommissionAmount, true)}</td>
-                    <td className={`${colCell}${xh("payOutCommissionPct")}${xv("payOutCommissionPct")}`}>{fmtPct(row.payOutCommissionPct)}</td>
-                    <td className={`${colCell}${xh("payOutCommissionAmount")}${xv("payOutCommissionAmount")}`}>{colorVal(row.payOutCommissionAmount, true)}</td>
-                    <td className={`${colCell}${xh("referralCommissionPct")}${xv("referralCommissionPct")}`}>{fmtPct(row.referralCommissionPct)}</td>
-                    <td className={`${colCell}${xh("referralCommissionAmount")}${xv("referralCommissionAmount")}`}>{colorVal(row.referralCommissionAmount, true)}</td>
+                    <td className={`${colCell}${xh("lastSettlement")}${xv("lastSettlement")}`}>{colorVal(row.lastSettlement, true)}</td>
+                    <td className={`${colCell}${xh("payInCommission")}${xv("payInCommission")}`}>
+                      {fmtPct(row.payInCommissionPct)} ({colorVal(row.payInCommissionAmount, true)})
+                    </td>
+                    <td className={`${colCell}${xh("payOutCommission")}${xv("payOutCommission")}`}>
+                      {fmtPct(row.payOutCommissionPct)} ({colorVal(row.payOutCommissionAmount, true)})
+                    </td>
+                    <td className={`${colCell}${xh("referralCommission")}${xv("referralCommission")}`}>
+                      {fmtPct(row.referralCommissionPct)} ({colorVal(row.referralCommissionAmount, true)})
+                    </td>
                     <td className={`${colCell}${xh("credit")}${xv("credit")}`}>
                       <EditableCreditCell rowId={row.id} value={row.credit} onSave={saveRowCredit} />
                     </td>
@@ -1187,16 +1222,19 @@ export default function AdminDashboard() {
         isOpen={openTopModal === "interledger"}
         onClose={() => setOpenTopModal(null)}
         subadmins={subadminOptions}
+        onSuccess={() => void load()}
       />
       <SecurityDepositModal
         isOpen={openTopModal === "security-deposit"}
         onClose={() => setOpenTopModal(null)}
         subadmins={subadminOptions}
+        onSuccess={() => void load()}
       />
       <SettlementModal
         isOpen={openTopModal === "settlement"}
         onClose={() => setOpenTopModal(null)}
         subadmins={subadminOptions}
+        onSuccess={() => void load()}
       />
       <CommissionSettlementCsvModal
         isOpen={openTopModal === "commission-csv"}

@@ -126,8 +126,7 @@ export default function CompanyApiKeysSection({ companyId }: Props) {
       <div className="border-b border-gray-100 px-5 py-4 dark:border-gray-800">
         <h3 className="text-sm font-bold text-gray-800 dark:text-white">API Keys</h3>
         <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-          Company multiple API keys add kar sakti hai. PayIn status change par webhook platform ke fixed URL par jayega.
-        </p>
+          The company can add multiple API keys. When the PayIn status changes, the webhook will be sent to the platform’s fixed URL.        </p>
       </div>
 
       <div className="space-y-4 p-5">
@@ -166,7 +165,7 @@ export default function CompanyApiKeysSection({ companyId }: Props) {
               Copy your new API key now
             </p>
             <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">
-            This key will only be shown once. The full key will not be available again later.            </p>
+              This key will only be shown once. The full key will not be available again later.            </p>
             <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
               <code className="flex-1 break-all rounded-lg border border-amber-200 bg-white px-3 py-2 text-xs font-mono text-gray-800 dark:border-amber-900/40 dark:bg-gray-950 dark:text-gray-100">
                 {newFullKey}
@@ -223,11 +222,10 @@ export default function CompanyApiKeysSection({ companyId }: Props) {
                     <td className="px-4 py-3 font-mono text-xs text-gray-600 dark:text-gray-300">{key.keyPreview}</td>
                     <td className="px-4 py-3">
                       <span
-                        className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${
-                          key.status === "ACTIVE"
-                            ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300"
-                            : "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400"
-                        }`}
+                        className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${key.status === "ACTIVE"
+                          ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300"
+                          : "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400"
+                          }`}
                       >
                         {key.status}
                       </span>
@@ -256,12 +254,13 @@ export default function CompanyApiKeysSection({ companyId }: Props) {
         </div>
 
         <p className="text-xs text-gray-500 dark:text-gray-400">
-          Header: <code className="font-mono">x-api-key: your_key_here</code>
+          Header: <code className="font-mono">x-api-key: **************</code>
           <br />
-          Create: <code className="font-mono">POST /api/v1/payin/create</code> · Status:{" "}
-          <code className="font-mono">GET /api/v1/payin/status/[id]</code>
+          Create: <code className="font-mono">POST /api/v1/payin/create</code>
           <br />
-          Webhook: create / proof / approve / reject par auto POST (platform fixed URL)
+          Status: <code className="font-mono">GET /api/v1/payin/status/[id]</code>
+          <br />
+          Webhook: create / proof / approve / reject Auto POST (platform fixed URL)
           <br />
           Signature verify: HMAC-SHA256 with webhook signing secret (admin provides)
         </p>

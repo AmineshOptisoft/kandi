@@ -211,7 +211,7 @@ export default function PublicPayPage({ companyKey }: { companyKey: string }) {
         setCompanyBlockMessage(
           blocked
             ? data.company.blockMessage?.trim() ||
-                "This company cannot accept payment requests right now because the account has been blocked."
+            "This company cannot accept payment requests right now because the account has been blocked."
             : null,
         );
       } catch {
@@ -348,6 +348,8 @@ export default function PublicPayPage({ companyKey }: { companyKey: string }) {
           client_upi: "",
           amount,
           method,
+          id: request?.id,
+          note: request?.id,
         }),
       });
       const data = (await res.json()) as { ok?: boolean; request?: PayRequest; error?: string; waitForAgent?: boolean };
@@ -511,7 +513,7 @@ export default function PublicPayPage({ companyKey }: { companyKey: string }) {
 
         <Modal
           isOpen={companyBlocked && Boolean(company)}
-          onClose={() => {}}
+          onClose={() => { }}
           showCloseButton={false}
           closeOnBackdropClick={false}
           closeOnEscape={false}

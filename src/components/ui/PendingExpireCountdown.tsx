@@ -8,7 +8,15 @@ function parseEndMs(iso: string): number {
 }
 
 /** Live countdown until `expiresAtIso`; shows "Expired" at 0. */
-export default function PendingExpireCountdown({ expiresAtIso }: { expiresAtIso: string }) {
+export default function PendingExpireCountdown({
+  expiresAtIso,
+  assignedAtIso,
+  delayMinutes,
+}: {
+  expiresAtIso: string;
+  assignedAtIso?: string;
+  delayMinutes?: number;
+}) {
   const [remainSec, setRemainSec] = useState(0);
 
   useEffect(() => {
@@ -17,11 +25,25 @@ export default function PendingExpireCountdown({ expiresAtIso }: { expiresAtIso:
       setRemainSec(0);
       return;
     }
-    const tick = () => setRemainSec(Math.max(0, Math.ceil((end - Date.now()) / 1000)));
+    const tick = () => {
+      const now = Date.now();
+      if (assignedAtIso && delayMinutes && delayMinutes > 0) {
+        const assignedTime = new Date(assignedAtIso.trim()).getTime();
+        if (Number.isFinite(assignedTime)) {
+          const cooldownEnd = assignedTime + delayMinutes * 60_000;
+          if (now < cooldownEnd) {
+            const activeWindowMs = Math.max(0, end - cooldownEnd);
+            setRemainSec(Math.ceil(activeWindowMs / 1000));
+            return;
+          }
+        }
+      }
+      setRemainSec(Math.max(0, Math.ceil((end - now) / 1000)));
+    };
     tick();
     const id = window.setInterval(tick, 1000);
     return () => window.clearInterval(id);
-  }, [expiresAtIso]);
+  }, [expiresAtIso, assignedAtIso, delayMinutes]);
 
   const m = Math.floor(remainSec / 60);
   const s = remainSec % 60;

@@ -21,6 +21,7 @@ import {
   NavReportsIcon,
   NavSettingsIcon,
   NavSettlementLogIcon,
+  NavSecurityLogIcon,
   NavTransactionReportIcon,
   NavVendorIcon,
 } from "../icons/nav-icons";
@@ -55,6 +56,7 @@ const adminSections: NavSection[] = [
       { icon: <NavTransactionReportIcon />,  name: "Transaction Report", path: "/transaction-report" },
       { icon: <NavDisputesIcon />,           name: "Disputes",           path: "/dispute" },
       { icon: <NavSettlementLogIcon />,      name: "Settlement Log",     path: "/settlement-log" },
+      { icon: <NavSecurityLogIcon />,        name: "Security Log",       path: "/security-log" },
       { icon: <NavLedgerIcon />,             name: "Ledger",             path: "/ledger" },
       { icon: <NavLedgerIcon />,             name: "Interledger History", path: "/interledger-history" },
       { icon: <NavNotificationsIcon />,      name: "Notifications",      path: "/notifications" },

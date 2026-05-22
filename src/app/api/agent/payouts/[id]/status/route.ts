@@ -150,6 +150,14 @@ export async function PATCH(req: Request, context: { params: { id: string } | Pr
 
     await conn.commit();
     emitTransactionRealtime(txId, "status");
+
+    // Dispatch outbound webhook to merchant
+    try {
+      const { sendPayoutWebhookForTxStatusChange } = await import("@/lib/integrations/speedpay/outbound-payout-webhook");
+      void sendPayoutWebhookForTxStatusChange(txId, toStatus);
+    } catch (e) {
+      console.error("Failed to trigger outbound webhook status update:", e);
+    }
   } catch (e) {
     await conn.rollback();
     console.error(e);

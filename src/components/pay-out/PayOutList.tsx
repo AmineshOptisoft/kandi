@@ -360,7 +360,13 @@ function PayOutCard({
         <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold uppercase tracking-wide ${statusStyle[item.status]}`}>
           {item.status}
         </span>
-        {showPayOutExpireCountdown(item) ? <PendingExpireCountdown expiresAtIso={item.expiresAtIso!} /> : null}
+        {showPayOutExpireCountdown(item) && approveUnlocked ? (
+          <PendingExpireCountdown
+            expiresAtIso={item.expiresAtIso!}
+            assignedAtIso={item.assignedAtIso}
+            delayMinutes={agentApproveDelayMinutes}
+          />
+        ) : null}
         {isAgent &&
           item.status === "PENDING" &&
           baseApprove &&
