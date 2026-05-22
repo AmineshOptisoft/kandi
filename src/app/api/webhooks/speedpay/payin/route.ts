@@ -41,10 +41,10 @@ export async function POST(req: Request) {
 
   if (!transactionNumber && (!payinId || payinId < 1)) {
     // Accept payloads that only contain a note with company ID (e.g., "company:15|...")
-    // if (noteStr) {
-    //   console.log("[Speedpay Webhook] No IDs but note present – accepting webhook");
-    //   return NextResponse.json({ success: true, message: "Webhook processed (no transaction ID)" });
-    // }
+    if (noteStr) {
+      console.log("[Speedpay Webhook] No IDs but note present – accepting webhook");
+      return NextResponse.json({ success: true, message: "Webhook processed (no transaction ID)" });
+    }
     return NextResponse.json({ success: false, message: "transaction_number or data.id is required" }, { status: 400 });
   }
 
