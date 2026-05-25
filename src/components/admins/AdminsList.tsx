@@ -5,6 +5,7 @@ import CreateAdminModal from "./CreateAdminModal";
 import EditPermissionsModal from "./EditPermissionsModal";
 import type { Permission, AdminPermissions } from "@/lib/admin-permissions";
 import { ALL_PERMISSIONS } from "@/lib/admin-permissions";
+import { useAdminPermissions } from "@/hooks/useAdminPermissions";
 
 export interface AdminUser {
   adminId: number;
@@ -19,6 +20,7 @@ export interface AdminUser {
 }
 
 export default function AdminsList() {
+  const { can, loading: permLoading } = useAdminPermissions();
   const [admins, setAdmins] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -59,6 +61,30 @@ export default function AdminsList() {
     }
   };
 
+  if (permLoading) {
+    return (
+      <div className="flex h-96 items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-300 border-t-blue-600"></div>
+      </div>
+    );
+  }
+
+  if (!can("view_admins")) {
+    return (
+      <div className="flex h-[60vh] flex-col items-center justify-center text-center px-4">
+        <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center text-red-600 dark:text-red-400 mb-4 animate-bounce">
+          <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+          </svg>
+        </div>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Access Denied</h1>
+        <p className="text-gray-500 dark:text-gray-400 max-w-md">
+          You do not have the required permissions to view admin management. Please contact your system administrator if you believe this is an error.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-6">
       {/* Header */}
@@ -69,19 +95,21 @@ export default function AdminsList() {
             Create, edit, suspend, and configure access permissions for system administrators.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => {
-            setEditAdmin(null);
-            setShowCreateModal(true);
-          }}
-          className="inline-flex items-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-700 px-4 py-2.5 text-sm font-semibold text-white transition-all shadow-md shrink-0"
-        >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
-          </svg>
-          Add New Admin
-        </button>
+        {can("create_admins") && (
+          <button
+            type="button"
+            onClick={() => {
+              setEditAdmin(null);
+              setShowCreateModal(true);
+            }}
+            className="inline-flex items-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-700 px-4 py-2.5 text-sm font-semibold text-white transition-all shadow-md shrink-0"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+            </svg>
+            Add New Admin
+          </button>
+        )}
       </div>
 
       {error && (
@@ -126,24 +154,22 @@ export default function AdminsList() {
                     </td>
                     <td className="px-6 py-4">
                       <span
-                        className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-bold ${
-                          adm.role === "SUPER_ADMIN"
+                        className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-bold ${adm.role === "SUPER_ADMIN"
                             ? "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300"
                             : "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
-                        }`}
+                          }`}
                       >
                         {adm.role === "SUPER_ADMIN" ? "Super Admin" : "Admin"}
                       </span>
                     </td>
                     <td className="px-6 py-4">
                       <span
-                        className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-bold ${
-                          adm.status === "ACTIVE"
+                        className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-bold ${adm.status === "ACTIVE"
                             ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300"
                             : adm.status === "SUSPENDED"
-                            ? "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300"
-                            : "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400"
-                        }`}
+                              ? "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300"
+                              : "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400"
+                          }`}
                       >
                         {adm.status}
                       </span>
@@ -181,7 +207,7 @@ export default function AdminsList() {
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">
-                        {adm.role === "ADMIN" && (
+                        {adm.role === "ADMIN" && can("edit_admins") && (
                           <button
                             type="button"
                             onClick={() => setSelectedAdminForPerms(adm)}
@@ -190,6 +216,7 @@ export default function AdminsList() {
                             Permissions
                           </button>
                         )}
+                        {/* {can("edit_admins") && ( */}
                         <button
                           type="button"
                           onClick={() => {
@@ -200,15 +227,16 @@ export default function AdminsList() {
                         >
                           Edit
                         </button>
-                        {adm.role === "ADMIN" && (
-                          <button
-                            type="button"
-                            onClick={() => handleDelete(adm.adminId)}
-                            className="rounded-lg border border-red-200 dark:border-red-900/40 px-2.5 py-1 text-xs font-semibold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors"
-                          >
-                            Delete
-                          </button>
-                        )}
+                        {/* )} */}
+                        {/* {adm.role === "ADMIN" && can("delete_admins") && ( */}
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(adm.adminId)}
+                          className="rounded-lg border border-red-200 dark:border-red-900/40 px-2.5 py-1 text-xs font-semibold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors"
+                        >
+                          Delete
+                        </button>
+                        {/* )} */}
                       </div>
                     </td>
                   </tr>

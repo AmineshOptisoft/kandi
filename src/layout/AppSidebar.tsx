@@ -6,6 +6,8 @@ import { usePathname } from "next/navigation";
 import { useSidebar } from "../context/SidebarContext";
 import { useAuth } from "../context/AuthContext";
 import { useNotifications } from "../context/NotificationContext";
+import { useAdminPermissions } from "../hooks/useAdminPermissions";
+import type { Permission } from "../lib/admin-permissions";
 import { ChevronDownIcon, HorizontaLDots } from "../icons/index";
 import {
   NavAdminDashboardIcon,
@@ -146,6 +148,21 @@ const PANEL_THEME: Record<PanelType, { borderBgText: string; iconBg: string; act
   },
 };
 
+const ADMIN_PATH_PERMISSIONS: Record<string, Permission> = {
+  "/": "view_dashboard",
+  "/agent": "view_agents",
+  "/companies": "view_companies",
+  "/admins": "view_admins",
+  "/pay-in": "view_payins",
+  "/pay-out": "view_payouts",
+  "/transaction-report": "view_reports",
+  "/dispute": "view_disputes",
+  "/settlement-log": "view_settlements",
+  "/security-log": "view_security_deposits",
+  "/ledger": "view_ledger",
+  "/interledger-history": "add_interledger",
+};
+
 /* ── Notification Badge ─────────────────────────────────────── */
 function NotificationBadge({ compact }: { compact?: boolean }) {
   const { unreadCount } = useNotifications();
@@ -168,6 +185,7 @@ function NotificationBadge({ compact }: { compact?: boolean }) {
 const AppSidebar: React.FC = () => {
   const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
   const { user } = useAuth();
+  const { can, loading: permLoading } = useAdminPermissions();
   const pathname = usePathname();
 
   /* Panel switcher */
@@ -214,26 +232,45 @@ const AppSidebar: React.FC = () => {
   const currentSections = useMemo((): NavSection[] => {
     if (effectivePanel !== "admin") return effectivePanel === "agent" ? agentSections : companySections;
 
-    if (user?.adminRole === "SUPER_ADMIN") {
-      const baseMainItems = adminSections[0].items;
-      if (!baseMainItems.some((item) => item.path === "/admins")) {
-        return [
-          {
-            heading: "",
-            sectionKey: "admin-main",
-            items: [
-              ...baseMainItems.slice(0, 3), // Dashboard, Vendor, Companies
-              { icon: <NavVendorIcon />, name: "Admins", path: "/admins" },
-              // { icon: <NavSecurityLogIcon />, name: "Admin Activity Log", path: "/admin-activity-log" },
-              ...baseMainItems.slice(3), // Pay In, etc.
-            ] as NavItem[],
-          },
-          adminSections[1],
-        ];
-      }
+    // Build main items dynamically
+    const mainItems: NavItem[] = [
+      { icon: <NavAdminDashboardIcon />, name: "Dashboard", path: "/" },
+      { icon: <NavVendorIcon />, name: "Vendor", path: "/agent" },
+      { icon: <NavCompaniesIcon />, name: "Companies", path: "/companies" },
+    ];
+
+    if (user?.adminRole === "SUPER_ADMIN" || (!permLoading && can("view_admins"))) {
+      mainItems.push({ icon: <NavVendorIcon />, name: "Admins", path: "/admins" });
     }
-    return adminSections;
-  }, [effectivePanel, user?.adminRole]);
+
+    mainItems.push(
+      { icon: <NavPayInIcon />, name: "Pay In", path: "/pay-in" },
+      { icon: <NavPayOutIcon />, name: "Pay Out", path: "/pay-out" },
+      { icon: <NavTransactionReportIcon />, name: "Transaction Report", path: "/transaction-report" },
+      { icon: <NavDisputesIcon />, name: "Disputes", path: "/dispute" },
+      { icon: <NavSettlementLogIcon />, name: "Settlement Log", path: "/settlement-log" },
+      { icon: <NavSecurityLogIcon />, name: "Security Log", path: "/security-log" },
+      { icon: <NavLedgerIcon />, name: "Ledger", path: "/ledger" },
+      { icon: <NavLedgerIcon />, name: "Interledger History", path: "/interledger-history" },
+      { icon: <NavNotificationsIcon />, name: "Notifications", path: "/notifications" }
+    );
+
+    const filteredMainItems = mainItems.filter((item) => {
+      if (!item.path) return true;
+      const perm = ADMIN_PATH_PERMISSIONS[item.path];
+      if (!perm) return true;
+      return can(perm);
+    });
+
+    return [
+      {
+        heading: "",
+        sectionKey: "admin-main",
+        items: filteredMainItems,
+      },
+      adminSections[1],
+    ];
+  }, [effectivePanel, user?.adminRole, permLoading, can]);
 
   /* Submenu state */
   const [openSubmenu, setOpenSubmenu] = useState<{ sectionKey: string; index: number } | null>(null);

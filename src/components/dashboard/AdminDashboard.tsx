@@ -825,6 +825,23 @@ export default function AdminDashboard() {
   const xv = (k: StatsColKey) => (colVisible[k] ? "" : " hidden");
   const visibleColCount = FIN_STATS_COLUMNS.filter((c) => colVisible[c.key]).length;
 
+  if (permLoading) {
+    return (
+      <div className="flex items-center justify-center p-12">
+        <div className="text-sm text-gray-500">Checking permissions...</div>
+      </div>
+    );
+  }
+
+  if (!can("view_dashboard")) {
+    return (
+      <div className="flex flex-col items-center justify-center p-12 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800">
+        <h2 className="text-lg font-bold text-gray-900 dark:text-white">Access Denied</h2>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">You do not have permission to view the Admin Dashboard.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-4">
       {/* ── Page header ── */}

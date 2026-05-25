@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { RowDataPacket, ResultSetHeader } from "mysql2/promise";
 import { pool } from "@/lib/db";
-import { requireSuperAdminSession } from "@/lib/require-super-admin-api";
+import { requireAdminPermission } from "@/lib/require-admin-api";
 import { hashPassword } from "@/lib/auth-password";
 import { logAdminActivity, getIpFromRequest } from "@/lib/admin-activity-log";
 
@@ -26,7 +26,7 @@ export async function GET(
   _req: Request,
   context: { params: { id: string } | Promise<{ id: string }> },
 ) {
-  const auth = await requireSuperAdminSession();
+  const auth = await requireAdminPermission("view_admins");
   if (!auth.ok) return auth.response;
 
   const { id: idRaw } = await Promise.resolve(context.params);
@@ -45,7 +45,7 @@ export async function PATCH(
   req: Request,
   context: { params: { id: string } | Promise<{ id: string }> },
 ) {
-  const auth = await requireSuperAdminSession();
+  const auth = await requireAdminPermission("edit_admins");
   if (!auth.ok) return auth.response;
 
   const { id: idRaw } = await Promise.resolve(context.params);
@@ -119,7 +119,7 @@ export async function DELETE(
   req: Request,
   context: { params: { id: string } | Promise<{ id: string }> },
 ) {
-  const auth = await requireSuperAdminSession();
+  const auth = await requireAdminPermission("delete_admins");
   if (!auth.ok) return auth.response;
 
   const { id: idRaw } = await Promise.resolve(context.params);

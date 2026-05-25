@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { RowDataPacket } from "mysql2/promise";
 import { pool } from "@/lib/db";
-import { requireSuperAdminSession } from "@/lib/require-super-admin-api";
+import { requireAdminPermission } from "@/lib/require-admin-api";
 
 type LogRow = RowDataPacket & {
   id: number;
@@ -17,7 +17,7 @@ type LogRow = RowDataPacket & {
 };
 
 export async function GET(req: Request) {
-  const auth = await requireSuperAdminSession();
+  const auth = await requireAdminPermission("view_admins");
   if (!auth.ok) return auth.response;
 
   const { searchParams } = new URL(req.url);

@@ -61,11 +61,16 @@ function verifySignedJson<T extends { exp: number }>(
 }
 
 export function signAdminSession(
-  input: { adminId: number; email: string; role: AdminRole },
+  input: { adminId: number; email: string; role?: AdminRole },
   secret: string,
   maxAgeMs = defaultMaxAgeMs,
 ): string {
-  const payload: Omit<AdminSessionPayload, "exp"> = { v: 1, adminId: input.adminId, email: input.email, role: input.role };
+  const payload: Omit<AdminSessionPayload, "exp"> = {
+    v: 1,
+    adminId: input.adminId,
+    email: input.email,
+    role: input.role ?? "SUPER_ADMIN",
+  };
   return signJson(payload, secret, maxAgeMs);
 }
 

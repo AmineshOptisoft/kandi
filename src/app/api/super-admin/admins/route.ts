@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { RowDataPacket, ResultSetHeader } from "mysql2/promise";
 import { pool } from "@/lib/db";
-import { requireSuperAdminSession } from "@/lib/require-super-admin-api";
+import { requireAdminPermission } from "@/lib/require-admin-api";
 import { hashPassword } from "@/lib/auth-password";
 import { ALL_PERMISSIONS, noPermissionsGranted } from "@/lib/admin-permissions";
 import type { Permission } from "@/lib/admin-permissions";
@@ -21,7 +21,7 @@ type AdminRow = RowDataPacket & {
 type PermRow = RowDataPacket & Record<string, unknown>;
 
 export async function GET(req: Request) {
-  const auth = await requireSuperAdminSession();
+  const auth = await requireAdminPermission("view_admins");
   if (!auth.ok) return auth.response;
 
   const [rows] = await pool.execute<AdminRow[]>(
@@ -68,7 +68,7 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  const auth = await requireSuperAdminSession();
+  const auth = await requireAdminPermission("create_admins");
   if (!auth.ok) return auth.response;
 
   let body: Record<string, unknown>;

@@ -5,6 +5,7 @@ import Link from "next/link";
 import Pagination from "../ui/Pagination";
 import LogoImagePicker from "./LogoImagePicker";
 import CompanyApiKeysSection from "./CompanyApiKeysSection";
+import { useAdminPermissions } from "@/hooks/useAdminPermissions";
 
 /* ── Types ── */
 type TxStatus = "NOT_ASSIGNED" | "PENDING" | "APPROVED" | "EXPIRED" | "FAILED";
@@ -67,6 +68,7 @@ type ApiCompany = {
 
 /* ── Main component ── */
 export default function CompanyDetail({ id }: { id: string }) {
+  const { can, loading: permLoading } = useAdminPermissions();
   const [apiCompany, setApiCompany] = useState<ApiCompany | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -246,6 +248,23 @@ export default function CompanyDetail({ id }: { id: string }) {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  if (permLoading) {
+    return (
+      <div className="flex items-center justify-center p-12">
+        <div className="text-sm text-gray-500">Checking permissions...</div>
+      </div>
+    );
+  }
+
+  if (!can("view_companies")) {
+    return (
+      <div className="flex flex-col items-center justify-center p-12 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800">
+        <h2 className="text-lg font-bold text-gray-900 dark:text-white">Access Denied</h2>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">You do not have permission to view companies.</p>
+      </div>
+    );
+  }
+
   if (loadError && !apiCompany) {
     return (
       <div className="flex flex-col gap-4">
@@ -299,6 +318,7 @@ export default function CompanyDetail({ id }: { id: string }) {
               }
               onFile={uploadLogoFile}
               uploading={uploadingLogo}
+              disabled={!can("edit_companies")}
             />
             {uploadError && <p className="text-xs text-red-500 text-center max-w-[220px] mt-1">{uploadError}</p>}
             <p className="text-base font-bold text-gray-900 dark:text-white mt-3">{company.username}</p>
