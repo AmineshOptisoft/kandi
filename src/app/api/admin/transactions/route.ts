@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { rowToPayInItem, rowToPayOutItem, type TxRow } from "@/lib/agent-transactions-map";
 import { pool } from "@/lib/db";
-import { requireAdminSession } from "@/lib/require-admin-api";
+import { requireAdminPermission } from "@/lib/require-admin-api";
 import { isMissingDisputeStateColumn, sqlExcludeOpenDispute, sqlExcludeOpenDisputeLegacy } from "@/lib/dispute";
 import { expireOpenRequestsPastDeadline } from "@/lib/request-expiry";
 
@@ -14,14 +14,15 @@ const SELECT_TX = `
 `;
 
 export async function GET(req: Request) {
-  const auth = await requireAdminSession();
-  if (!auth.ok) return auth.response;
-
   const { searchParams } = new URL(req.url);
   const typeRaw = searchParams.get("type")?.toUpperCase() ?? "";
   if (typeRaw !== "PAYIN" && typeRaw !== "PAYOUT") {
     return NextResponse.json({ ok: false, error: "Query type=PAYIN or type=PAYOUT required" }, { status: 400 });
   }
+
+  const permission = typeRaw === "PAYOUT" ? "view_payouts" : "view_payins";
+  const auth = await requireAdminPermission(permission);
+  if (!auth.ok) return auth.response;
 
   const statusRaw = searchParams.get("status")?.trim().toUpperCase() ?? "";
   const limitRaw = Number(searchParams.get("limit") ?? "500");

@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { useAdminPermissions } from "@/hooks/useAdminPermissions";
 import { ListIcon } from "@/icons";
 import { Modal } from "../ui/modal";
 import { Table, TableBody, TableCell, TableHeader, TableRow } from "../ui/table";
@@ -38,6 +39,7 @@ function todayInputDate(): string {
 }
 
 export default function SecurityLog() {
+  const { can } = useAdminPermissions();
   const { loading: authLoading } = useAuth();
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
@@ -226,13 +228,15 @@ export default function SecurityLog() {
               </select>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={openAddModal}
-            className="inline-flex h-10 items-center rounded-lg bg-brand-500 px-4 text-xs font-semibold text-white hover:bg-brand-600"
-          >
-            Add/Deduct Security
-          </button>
+          {can("add_security_deposit") && (
+            <button
+              type="button"
+              onClick={openAddModal}
+              className="inline-flex h-10 items-center rounded-lg bg-brand-500 px-4 text-xs font-semibold text-white hover:bg-brand-600"
+            >
+              Add/Deduct Security
+            </button>
+          )}
         </div>
       </div>
 

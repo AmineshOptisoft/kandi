@@ -3,6 +3,22 @@ import { pool } from "@/lib/db";
 import { isMissingCompanyApiKeysTable, revokeCompanyApiKey } from "@/lib/company-api-keys";
 import { requireAdminSession } from "@/lib/require-admin-api";
 
+async function resolveCompanyId(idRaw: string): Promise<number | null> {
+  const isNumeric = /^\d+$/.test(idRaw);
+  if (isNumeric) {
+    const id = Number(idRaw);
+    if (Number.isInteger(id) && id >= 1) return id;
+  }
+  const [rows] = await pool.execute<any[]>(
+    "SELECT `id` FROM `companies` WHERE `company_code` = ? LIMIT 1",
+    [idRaw],
+  );
+  if (rows[0]) {
+    return Number(rows[0].id);
+  }
+  return null;
+}
+
 function parseId(raw: string): number | null {
   const id = Number(raw);
   if (!Number.isInteger(id) || id < 1) return null;
@@ -17,7 +33,7 @@ export async function PATCH(
   if (!auth.ok) return auth.response;
 
   const params = await Promise.resolve(context.params);
-  const companyId = parseId(params.id);
+  const companyId = await resolveCompanyId(params.id);
   const keyId = parseId(params.keyId);
   if (!companyId || !keyId) {
     return NextResponse.json({ ok: false, error: "Invalid id" }, { status: 400 });

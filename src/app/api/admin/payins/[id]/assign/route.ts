@@ -4,7 +4,7 @@ import { pool } from "@/lib/db";
 import { canAssignPayIn } from "@/lib/payin-lifecycle";
 import { emitTransactionRealtime } from "@/lib/realtime/broadcast-transaction";
 import { AGENT_BLOCKED_ASSIGN_MSG, isAgentActiveForAssignment } from "@/lib/party-status";
-import { requireAdminSession } from "@/lib/require-admin-api";
+import { requireAdminPermission } from "@/lib/require-admin-api";
 
 type TxRow = RowDataPacket & {
   id: number;
@@ -36,7 +36,7 @@ function num(v: string | number): number {
 }
 
 export async function POST(req: Request, context: { params: { id: string } | Promise<{ id: string }> }) {
-  const auth = await requireAdminSession();
+  const auth = await requireAdminPermission("assign_payins");
   if (!auth.ok) return auth.response;
 
   const { id: idRaw } = await Promise.resolve(context.params);

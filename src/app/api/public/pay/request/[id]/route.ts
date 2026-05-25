@@ -37,7 +37,8 @@ function num(v: string | number): number {
 }
 
 function isValidUtrCode(v: string): boolean {
-  return /^\d{12}$/.test(v);
+  // IMPS = 12 digits, UPI ref = 12 digits, NEFT RRN = 16 digits, some RTGS = 22 digits
+  return /^\d{12,22}$/.test(v);
 }
 
 function expiresAtToIso(v: Date | string | null | undefined): string | undefined {
@@ -179,7 +180,7 @@ export async function PATCH(req: Request, context: { params: { id: string } | Pr
     return NextResponse.json({ ok: false, error: "Provide utr_code or payment_image" }, { status: 400 });
   }
   if (!isValidUtrCode(utr)) {
-    return NextResponse.json({ ok: false, error: "UTR must be exactly 12 digits." }, { status: 400 });
+    return NextResponse.json({ ok: false, error: "UTR/RRN must be between 12 and 22 digits." }, { status: 400 });
   }
 
   const proofCheck = validatePaymentProofPayload({ utr_code: utr, payment_image: image, user_upi: userUpi });

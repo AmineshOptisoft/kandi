@@ -8,6 +8,7 @@ import Pagination from "../ui/Pagination";
 import type { Agent } from "./types";
 import DateRangePicker, { DateRange } from "@/components/dashboard/DateRangePicker";
 import { appendDateRangeToUrl, daysAgoInputDate, todayInputDate } from "@/lib/date-range";
+import { useAdminPermissions } from "@/hooks/useAdminPermissions";
 
 export type { Agent } from "./types";
 
@@ -25,7 +26,7 @@ function fmtMoney(n: number) {
 
 const PAGE_SIZE = 6;
 
-function AgentCard({ agent, onEdit }: { agent: Agent; onEdit: () => void }) {
+function AgentCard({ agent, onEdit, canEdit }: { agent: Agent; onEdit: () => void; canEdit?: boolean }) {
   const name = agent.fullname || agent.username;
   return (
     <div className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-white/[0.03] p-4 flex flex-col gap-3">
@@ -45,9 +46,11 @@ function AgentCard({ agent, onEdit }: { agent: Agent; onEdit: () => void }) {
           <p className="mt-0.5 truncate text-xs text-gray-500 dark:text-gray-400">{name}</p>
           {agent.email && <p className="truncate text-xs text-gray-400">{agent.email}</p>}
         </div>
-        <button type="button" onClick={onEdit} className="shrink-0 rounded-lg border border-gray-200 px-2 py-1 text-xs font-semibold text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800">
-          Edit
-        </button>
+        {canEdit !== false && (
+          <button type="button" onClick={onEdit} className="shrink-0 rounded-lg border border-gray-200 px-2 py-1 text-xs font-semibold text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800">
+            Edit
+          </button>
+        )}
       </div>
       <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500 dark:text-gray-400">
         <span>Pay-in: {fmtMoney(agent.net_pay_in)}</span>
@@ -58,7 +61,7 @@ function AgentCard({ agent, onEdit }: { agent: Agent; onEdit: () => void }) {
   );
 }
 
-function AgentRow({ agent, onEdit }: { agent: Agent; onEdit: () => void }) {
+function AgentRow({ agent, onEdit, canEdit }: { agent: Agent; onEdit: () => void; canEdit?: boolean }) {
   const name = agent.fullname || agent.username;
   return (
     <div className="flex items-center gap-4 border-b border-gray-100 px-5 py-3.5 transition-colors last:border-0 hover:bg-gray-50/60 dark:border-gray-800 dark:hover:bg-white/[0.02]">
@@ -74,14 +77,17 @@ function AgentRow({ agent, onEdit }: { agent: Agent; onEdit: () => void }) {
         </div>
         <p className="mt-0.5 truncate text-xs text-gray-400">{name} · Pay-in {fmtMoney(agent.net_pay_in)}</p>
       </div>
-      <button type="button" onClick={onEdit} className="shrink-0 rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-semibold dark:border-gray-700">
-        Edit
-      </button>
+      {canEdit !== false && (
+        <button type="button" onClick={onEdit} className="shrink-0 rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-semibold dark:border-gray-700">
+          Edit
+        </button>
+      )}
     </div>
   );
 }
 
 export default function AgentList() {
+  const { can, loading: permLoading } = useAdminPermissions();
   const [showCreate, setShowCreate] = useState(false);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [search, setSearch] = useState("");
@@ -124,6 +130,7 @@ export default function AgentList() {
         setAgents([]);
         return;
       }
+      console.log("agents data", data);
       setAgents(data.agents);
       setPeriodMetrics(Boolean(data.dateRangeActive));
     } catch {
@@ -148,6 +155,23 @@ export default function AgentList() {
   );
 
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  if (permLoading) {
+    return (
+      <div className="flex items-center justify-center p-12">
+        <div className="text-sm text-gray-500">Checking permissions...</div>
+      </div>
+    );
+  }
+
+  if (!can("view_agents")) {
+    return (
+      <div className="flex flex-col items-center justify-center p-12 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800">
+        <h2 className="text-lg font-bold text-gray-900 dark:text-white">Access Denied</h2>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">You do not have permission to view agents.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-5">
@@ -183,15 +207,17 @@ export default function AgentList() {
           </span>
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setShowCreate(true)}
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
-          >
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
-            </svg>
-          </button>
+          {can("create_agents") && (
+            <button
+              type="button"
+              onClick={() => setShowCreate(true)}
+              className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+              </svg>
+            </button>
+          )}
           {searchOpen ? (
             <div className="relative">
               <input
@@ -250,13 +276,13 @@ export default function AgentList() {
         ) : viewMode === "grid" ? (
           <div className="grid grid-cols-1 gap-4 p-4 sm:grid-cols-2">
             {paginated.map((a) => (
-              <AgentCard key={a.id} agent={a} onEdit={() => setEditAgent(a)} />
+              <AgentCard key={a.id} agent={a} onEdit={() => setEditAgent(a)} canEdit={can("edit_agents")} />
             ))}
           </div>
         ) : (
           <div>
             {paginated.map((a) => (
-              <AgentRow key={a.id} agent={a} onEdit={() => setEditAgent(a)} />
+              <AgentRow key={a.id} agent={a} onEdit={() => setEditAgent(a)} canEdit={can("edit_agents")} />
             ))}
           </div>
         )}

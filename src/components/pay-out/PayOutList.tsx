@@ -12,6 +12,7 @@ import { csvExportTimestamp, downloadCsv } from "@/lib/csv-download";
 import { PiContactlessPaymentFill } from "react-icons/pi";
 import { useTransactionRealtimeRefresh } from "@/hooks/useTransactionRealtimeRefresh";
 import { useAuth } from "@/context/AuthContext";
+import { useAdminPermissions } from "@/hooks/useAdminPermissions";
 import { PayOutIcon } from "@/icons/nav-icons";
 import { toInputDate } from "@/lib/date-range";
 
@@ -316,6 +317,9 @@ function PayOutCard({
   isAgent,
   onDispute,
   agentApproveDelayMinutes,
+  canApprove,
+  canAssign,
+  canDecline,
 }: {
   item: PayOutItem;
   busy?: boolean;
@@ -328,6 +332,9 @@ function PayOutCard({
   onDispute?: (item: PayOutItem) => void;
   /** From server when agent loads payouts; controls post-assignment approve delay. */
   agentApproveDelayMinutes?: number;
+  canApprove?: boolean;
+  canAssign?: boolean;
+  canDecline?: boolean;
 }) {
   const [extraOpen, setExtraOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -384,21 +391,21 @@ function PayOutCard({
       </div>
 
       <div className="flex items-center gap-2 shrink-0">
-        {!item.disputeRaised && allowAssign && showAssign(item) && (
+        {!item.disputeRaised && allowAssign && showAssign(item) && (canAssign !== false) && (
           <AssignButton onClick={() => onOpenAction(item, "assign")} disabled={busy} />
         )}
-        {!item.disputeRaised && showApproveBtn && (
+        {!item.disputeRaised && showApproveBtn && (canApprove !== false) && (
           <ApproveButton onClick={() => onOpenAction(item, "approve")} disabled={busy} />
         )}
-        {!item.disputeRaised && showReject(item.status) && showCancel(item.status) ? (
+        {!item.disputeRaised && showReject(item.status) && showCancel(item.status) && (canDecline !== false) ? (
           <DeclineMenu
             disabled={busy}
             onReject={() => onOpenAction(item, "reject")}
             onRevoke={() => onOpenAction(item, "cancel")}
           />
-        ) : !item.disputeRaised && showReject(item.status) ? (
+        ) : !item.disputeRaised && showReject(item.status) && (canDecline !== false) ? (
           <RejectButton onClick={() => onOpenAction(item, "reject")} disabled={busy} />
-        ) : !item.disputeRaised && showCancel(item.status) ? (
+        ) : !item.disputeRaised && showCancel(item.status) && (canDecline !== false) ? (
           <button
             type="button"
             disabled={busy}
@@ -955,6 +962,7 @@ export default function PayOutList() {
   const [modalProofDataUrl, setModalProofDataUrl] = useState<string | null>(null);
   const [modalProofName, setModalProofName] = useState("");
   const { user, loading: authLoading } = useAuth();
+  const { can, loading: permLoading } = useAdminPermissions();
   const [actionBusyId, setActionBusyId] = useState<string | null>(null);
   const resolvedRole = (authLoading ? null : user?.role) || panelRole;
   const [agents, setAgents] = useState<AgentOption[]>([]);
@@ -1326,6 +1334,25 @@ export default function PayOutList() {
     return <CompanyPayOutView />;
   }
 
+  if (resolvedRole === "admin") {
+    if (permLoading) {
+      return (
+        <div className="flex items-center justify-center p-12">
+          <div className="text-sm text-gray-500">Checking permissions...</div>
+        </div>
+      );
+    }
+
+    if (!can("view_payouts")) {
+      return (
+        <div className="flex flex-col items-center justify-center p-12 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-white">Access Denied</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">You do not have permission to view payouts.</p>
+        </div>
+      );
+    }
+  }
+
   return (
     <div className="flex flex-col gap-4">
       {/* Page header */}
@@ -1374,16 +1401,18 @@ export default function PayOutList() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={exportPayOutsCsv}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 transition-colors"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                Export
-              </button>
+              {(resolvedRole !== "admin" || can("export_transactions")) && (
+                <button
+                  type="button"
+                  onClick={exportPayOutsCsv}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  Export
+                </button>
+              )}
               <button
                 onClick={() => setShowFilter(false)}
                 className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-700 transition-colors"
@@ -1525,6 +1554,9 @@ export default function PayOutList() {
               isAgent={resolvedRole === "agent"}
               onDispute={raiseDispute}
               agentApproveDelayMinutes={resolvedRole === "agent" ? payoutAgentApproveDelayMins : undefined}
+              canApprove={resolvedRole !== "admin" || can("approve_payouts")}
+              canAssign={resolvedRole !== "admin" || can("assign_payouts")}
+              canDecline={resolvedRole !== "admin" || can("reject_payouts")}
             />
           ))
         )}

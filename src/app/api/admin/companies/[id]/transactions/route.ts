@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { RowDataPacket } from "mysql2/promise";
 import { pool } from "@/lib/db";
-import { requireAdminSession } from "@/lib/require-admin-api";
+import { requireAdminSession, hasAdminPermission } from "@/lib/require-admin-api";
 
 type TxRow = RowDataPacket & {
   id: number;
@@ -32,10 +32,32 @@ export async function GET(
   const auth = await requireAdminSession();
   if (!auth.ok) return auth.response;
 
+  const hasPerm = await hasAdminPermission(auth.adminId, auth.role, "view_companies") ||
+                  await hasAdminPermission(auth.adminId, auth.role, "view_transactions");
+  if (!hasPerm) {
+    return NextResponse.json(
+      { ok: false, error: "Forbidden: requires view_companies or view_transactions privilege" },
+      { status: 403 },
+    );
+  }
+
   const { id: idRaw } = await Promise.resolve(context.params);
-  const companyId = Number(idRaw);
-  if (!Number.isInteger(companyId) || companyId < 1) {
-    return NextResponse.json({ ok: false, error: "Invalid company id" }, { status: 400 });
+  let companyId: number | null = null;
+  const isNumeric = /^\d+$/.test(idRaw);
+  if (isNumeric) {
+    companyId = Number(idRaw);
+  } else {
+    const [comp] = await pool.execute<RowDataPacket[]>(
+      "SELECT `id` FROM `companies` WHERE `company_code` = ? LIMIT 1",
+      [idRaw],
+    );
+    if (comp[0]) {
+      companyId = Number(comp[0].id);
+    }
+  }
+
+  if (!companyId || !Number.isInteger(companyId) || companyId < 1) {
+    return NextResponse.json({ ok: false, error: "Company not found" }, { status: 404 });
   }
 
   const [companyRows] = await pool.execute<RowDataPacket[]>(

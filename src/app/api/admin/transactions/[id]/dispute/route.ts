@@ -3,7 +3,7 @@ import type { ResultSetHeader, RowDataPacket } from "mysql2/promise";
 import { pool } from "@/lib/db";
 import { isMissingDisputeStateColumn, isOpenDispute } from "@/lib/dispute";
 import { emitTransactionRealtime } from "@/lib/realtime/broadcast-transaction";
-import { requireAdminSession } from "@/lib/require-admin-api";
+import { requireAdminPermission } from "@/lib/require-admin-api";
 
 type TxRow = RowDataPacket & {
   id: number;
@@ -15,9 +15,6 @@ type TxRow = RowDataPacket & {
 const DISPUTE_STATES = new Set(["PENDING", "RESOLVED", "OTHER", "EXPIRED", "NONE"]);
 
 export async function PATCH(req: Request, context: { params: { id: string } | Promise<{ id: string }> }) {
-  const auth = await requireAdminSession();
-  if (!auth.ok) return auth.response;
-
   const { id: idRaw } = await Promise.resolve(context.params);
   const txId = Number(idRaw);
   if (!Number.isInteger(txId) || txId < 1) {
@@ -30,6 +27,10 @@ export async function PATCH(req: Request, context: { params: { id: string } | Pr
   } catch {
     body = {};
   }
+
+  const requiredPermission = ("dispute_state" in body) ? "resolve_disputes" : "create_disputes";
+  const auth = await requireAdminPermission(requiredPermission);
+  if (!auth.ok) return auth.response;
 
   const stateRaw = typeof body.dispute_state === "string" ? body.dispute_state.trim().toUpperCase() : "";
   const reason = typeof body.reason === "string" ? body.reason.trim() : "";

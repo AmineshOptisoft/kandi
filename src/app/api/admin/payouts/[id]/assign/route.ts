@@ -5,7 +5,7 @@ import { DISPUTE_BLOCKS_ACTION_MSG, isOpenDispute } from "@/lib/dispute";
 import { emitTransactionRealtime } from "@/lib/realtime/broadcast-transaction";
 import { canAdminAssign } from "@/lib/payout-lifecycle";
 import { AGENT_BLOCKED_ASSIGN_MSG, isAgentActiveForAssignment } from "@/lib/party-status";
-import { requireAdminSession } from "@/lib/require-admin-api";
+import { requireAdminPermission } from "@/lib/require-admin-api";
 import { getPayoutAgentApproveDelayMinutesFromEnv } from "@/lib/payout-agent-approve-delay";
 import { REQUEST_EXPIRE_MINUTES } from "@/lib/request-expiry";
 
@@ -66,7 +66,7 @@ async function findEligiblePayOutMethodId(
 }
 
 export async function POST(req: Request, context: { params: { id: string } | Promise<{ id: string }> }) {
-  const auth = await requireAdminSession();
+  const auth = await requireAdminPermission("assign_payouts");
   if (!auth.ok) return auth.response;
 
   const { id: idRaw } = await Promise.resolve(context.params);

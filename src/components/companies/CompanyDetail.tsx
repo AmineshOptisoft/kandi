@@ -44,10 +44,10 @@ function toMoney(value: unknown): string {
 
 const txStatusStyle: Record<TxStatus, string> = {
   NOT_ASSIGNED: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
-  PENDING:      "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
-  APPROVED:     "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400",
-  EXPIRED:      "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400",
-  FAILED:       "bg-red-100 text-red-500 dark:bg-red-900/30 dark:text-red-400",
+  PENDING: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
+  APPROVED: "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400",
+  EXPIRED: "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400",
+  FAILED: "bg-red-100 text-red-500 dark:bg-red-900/30 dark:text-red-400",
 };
 
 const TX_PAGE_SIZE = 5;
@@ -241,7 +241,7 @@ export default function CompanyDetail({ id }: { id: string }) {
 
   const handleCopy = () => {
     if (!paymentLink) return;
-    navigator.clipboard.writeText(paymentLink).catch(() => {});
+    navigator.clipboard.writeText(paymentLink).catch(() => { });
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -489,11 +489,10 @@ export default function CompanyDetail({ id }: { id: string }) {
                       <td className="px-5 py-3.5 text-sm text-gray-700 dark:text-gray-300">{tx.payer}</td>
                       <td className="px-5 py-3.5">
                         <span
-                          className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
-                            tx.type === "PAYOUT"
+                          className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${tx.type === "PAYOUT"
                               ? "bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300"
                               : "bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300"
-                          }`}
+                            }`}
                         >
                           {tx.type}
                         </span>
@@ -542,7 +541,7 @@ export default function CompanyDetail({ id }: { id: string }) {
 
       </div>
 
-      <CompanyApiKeysSection companyId={id} />
+      {/* <CompanyApiKeysSection companyId={id} /> */}
     </div>
   );
 }

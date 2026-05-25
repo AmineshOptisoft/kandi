@@ -6,6 +6,7 @@ import { ListIcon } from "@/icons";
 import { Modal } from "../ui/modal";
 import { Table, TableBody, TableCell, TableHeader, TableRow } from "../ui/table";
 import { SettlementLogIcon } from "@/icons/nav-icons";
+import { useAdminPermissions } from "@/hooks/useAdminPermissions";
 
 type PartyType = "AGENT" | "COMPANY";
 
@@ -52,6 +53,7 @@ function todayInputDate(): string {
 }
 
 export default function SettlementLog() {
+  const { can, loading: permLoading } = useAdminPermissions();
   const { loading: authLoading } = useAuth();
   const [tab, setTab] = useState<PartyType>("AGENT");
   const [from, setFrom] = useState("");
@@ -231,6 +233,23 @@ export default function SettlementLog() {
     }
   }
 
+  if (permLoading) {
+    return (
+      <div className="flex items-center justify-center p-12">
+        <div className="text-sm text-gray-500">Checking permissions...</div>
+      </div>
+    );
+  }
+
+  if (!can("view_settlements")) {
+    return (
+      <div className="flex flex-col items-center justify-center p-12 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800">
+        <h2 className="text-lg font-bold text-gray-900 dark:text-white">Access Denied</h2>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">You do not have permission to view settlements.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
@@ -294,13 +313,15 @@ export default function SettlementLog() {
               </select>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={openAddModal}
-            className="inline-flex h-10 items-center rounded-lg bg-brand-500 px-4 text-xs font-semibold text-white hover:bg-brand-600"
-          >
-            Add Settlement
-          </button>
+          {can("create_settlements") && (
+            <button
+              type="button"
+              onClick={openAddModal}
+              className="inline-flex h-10 items-center rounded-lg bg-brand-500 px-4 text-xs font-semibold text-white hover:bg-brand-600"
+            >
+              Add Settlement
+            </button>
+          )}
         </div>
       </div>
 

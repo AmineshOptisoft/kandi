@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { RowDataPacket } from "mysql2/promise";
 import { AGENT_SETTLED_LEDGER_SQL_IN } from "@/lib/agent-ledger-statuses";
 import { pool } from "@/lib/db";
-import { requireAdminSession } from "@/lib/require-admin-api";
+import { requireAdminPermission } from "@/lib/require-admin-api";
 
 type AgentRow = RowDataPacket & {
   id: number;
@@ -77,7 +77,7 @@ function mapAgent(r: AgentRow) {
 }
 
 export async function GET() {
-  const auth = await requireAdminSession();
+  const auth = await requireAdminPermission("view_dashboard");
   if (!auth.ok) return auth.response;
 
   try {

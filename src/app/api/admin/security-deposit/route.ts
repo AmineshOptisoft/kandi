@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { pool } from "@/lib/db";
-import { requireAdminSession } from "@/lib/require-admin-api";
+import { requireAdminPermission } from "@/lib/require-admin-api";
 import type { ResultSetHeader, RowDataPacket } from "mysql2/promise";
+import { logAdminActivity, getIpFromRequest } from "@/lib/admin-activity-log";
 
 type SecurityLogRow = RowDataPacket & {
   id: number;
@@ -48,7 +49,7 @@ function mapRow(r: SecurityLogRow) {
 }
 
 export async function GET(req: Request) {
-  const auth = await requireAdminSession();
+  const auth = await requireAdminPermission("view_security_deposits");
   if (!auth.ok) return auth.response;
 
   const { searchParams } = new URL(req.url);
@@ -96,7 +97,6 @@ export async function GET(req: Request) {
     return NextResponse.json({ ok: true as const, items: rows.map(mapRow) });
   } catch (err: any) {
     console.error(err);
-    // Fallback if table doesn't exist yet
     if (err?.code === "ER_NO_SUCH_TABLE") {
       return NextResponse.json({ ok: true as const, items: [] });
     }
@@ -105,7 +105,7 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  const auth = await requireAdminSession();
+  const auth = await requireAdminPermission("create_security_deposits");
   if (!auth.ok) return auth.response;
 
   let body: Record<string, unknown>;
@@ -170,6 +170,16 @@ export async function POST(req: Request) {
     );
 
     await conn.commit();
+
+    void logAdminActivity({
+      adminId: auth.adminId,
+      action: "UPDATE_SECURITY_DEPOSIT",
+      targetType: "agent",
+      targetId: agentId,
+      details: { amount: amountVal, transactionType: txnType, remark: remarkVal, previous: prevSecurityDeposit, current: newSecurityDeposit },
+      ipAddress: getIpFromRequest(req),
+    });
+
     return NextResponse.json({ ok: true });
   } catch (err) {
     await conn.rollback();
@@ -179,3 +189,4 @@ export async function POST(req: Request) {
     conn.release();
   }
 }
+

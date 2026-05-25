@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { RowDataPacket } from "mysql2/promise";
 import { pool } from "@/lib/db";
 import { parseDateRangeFromSearchParams, sqlCreatedAtRange } from "@/lib/date-range";
-import { requireAdminSession } from "@/lib/require-admin-api";
+import { requireAdminSession, hasAdminPermission } from "@/lib/require-admin-api";
 
 type TxRow = RowDataPacket & {
   id: number;
@@ -32,6 +32,15 @@ export async function GET(
 ) {
   const auth = await requireAdminSession();
   if (!auth.ok) return auth.response;
+
+  const hasPerm = await hasAdminPermission(auth.adminId, auth.role, "view_agents") ||
+                  await hasAdminPermission(auth.adminId, auth.role, "view_transactions");
+  if (!hasPerm) {
+    return NextResponse.json(
+      { ok: false, error: "Forbidden: requires view_agents or view_transactions privilege" },
+      { status: 403 },
+    );
+  }
 
   const { id: idRaw } = await Promise.resolve(context.params);
   const agentId = Number(idRaw);

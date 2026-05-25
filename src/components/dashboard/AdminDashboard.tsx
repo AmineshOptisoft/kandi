@@ -3,6 +3,7 @@ import React, { useCallback, useEffect, useMemo, useState, useRef, useLayoutEffe
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { useAdminPermissions } from "@/hooks/useAdminPermissions";
 import { useTransactionRealtimeRefresh } from "@/hooks/useTransactionRealtimeRefresh";
 import { csvExportTimestamp, downloadCsv } from "@/lib/csv-download";
 import {
@@ -14,6 +15,7 @@ import {
   SettlementModal,
 } from "@/components/dashboard/AdminDashboardActionForms";
 import { AdminDashboardIcon } from "@/icons/nav-icons";
+import type { Permission } from "@/lib/admin-permissions";
 
 /* ── Types ── */
 interface VendorRow {
@@ -43,10 +45,12 @@ function EditableCreditCell({
   rowId,
   value,
   onSave,
+  canEdit,
 }: {
   rowId: string;
   value: number;
   onSave: (id: string, next: number) => void;
+  canEdit: boolean;
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(String(value));
@@ -116,23 +120,25 @@ function EditableCreditCell({
   return (
     <div className="group/credit relative flex min-h-[1.75rem] items-center gap-1">
       {display}
-      <button
-        type="button"
-        title="Extra PayIn headroom beyond the security pool (credit limit). Click to edit."
-        onClick={(e) => {
-          e.stopPropagation();
-          startEdit();
-        }}
-        className="inline-flex shrink-0 items-center justify-center rounded p-0.5 text-gray-400 opacity-100 transition-opacity hover:bg-gray-100 hover:text-brand-600 dark:hover:bg-gray-800 dark:hover:text-brand-400"
-      >
-        <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
-          />
-        </svg>
-      </button>
+      {canEdit && (
+        <button
+          type="button"
+          title="Extra PayIn headroom beyond the security pool (credit limit). Click to edit."
+          onClick={(e) => {
+            e.stopPropagation();
+            startEdit();
+          }}
+          className="inline-flex shrink-0 items-center justify-center rounded p-0.5 text-gray-400 opacity-100 transition-opacity hover:bg-gray-100 hover:text-brand-600 dark:hover:bg-gray-800 dark:hover:text-brand-400"
+        >
+          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+            />
+          </svg>
+        </button>
+      )}
     </div>
   );
 }
@@ -455,6 +461,7 @@ function Tip({ label, children }: { label: string; children: React.ReactNode }) 
 /* ── Component ── */
 export default function AdminDashboard() {
   const { loading: authLoading } = useAuth();
+  const { can, isSuperAdmin, loading: permLoading } = useAdminPermissions();
   const router = useRouter();
   const [rows, setRows] = useState<VendorRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -643,10 +650,11 @@ export default function AdminDashboard() {
     | "commission-csv"
     | "manual-deposit";
 
-  const topActions: { id: TopActionId; label: string; icon: React.ReactNode }[] = [
+  const ALL_TOP_ACTIONS: { id: TopActionId; label: string; icon: React.ReactNode; requiredPermission?: Permission }[] = [
     {
       id: "interledger",
       label: "Add Interledger Entry",
+      requiredPermission: "add_interledger" as const,
       icon: (
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M7 7l-4 5 4 5M17 7l4 5-4 5M10 6l4 12" />
@@ -656,6 +664,7 @@ export default function AdminDashboard() {
     {
       id: "security-deposit",
       label: "Add Security Deposit",
+      requiredPermission: "add_security_deposit" as const,
       icon: (
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M12 3l7 3v5c0 4.2-2.7 7.8-7 10-4.3-2.2-7-5.8-7-10V6l7-3z" />
@@ -666,6 +675,7 @@ export default function AdminDashboard() {
     {
       id: "settlement",
       label: "Add Settlement",
+      requiredPermission: "add_settlement" as const,
       icon: (
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M5 6h14a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2z" />
@@ -676,6 +686,7 @@ export default function AdminDashboard() {
     {
       id: "export",
       label: "Export Data",
+      requiredPermission: "export_data" as const,
       icon: (
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v11m0 0l-4-4m4 4l4-4M4 16v2a3 3 0 003 3h10a3 3 0 003-3v-2" />
@@ -685,6 +696,7 @@ export default function AdminDashboard() {
     {
       id: "manual-payin",
       label: "Manual PayIn (CSV)",
+      requiredPermission: "manual_payin" as const,
       icon: (
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8l-5-5z" />
@@ -695,6 +707,7 @@ export default function AdminDashboard() {
     {
       id: "commission-csv",
       label: "Commission Settlement (CSV)",
+      requiredPermission: "commission_settlement" as const,
       icon: (
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8l-5-5z" />
@@ -706,6 +719,7 @@ export default function AdminDashboard() {
     {
       id: "manual-deposit",
       label: "Manual Deposit",
+      requiredPermission: "manually_deposit" as const,
       icon: (
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M3 8h18v9a2 2 0 01-2 2H5a2 2 0 01-2-2V8z" />
@@ -714,6 +728,11 @@ export default function AdminDashboard() {
       ),
     },
   ];
+
+  // Filter the toolbar to only include actions the current admin can perform
+  const topActions = permLoading
+    ? []
+    : ALL_TOP_ACTIONS.filter((a) => !a.requiredPermission || can(a.requiredPermission));
 
   const subadminOptions = useMemo(
     () =>
@@ -1131,7 +1150,7 @@ export default function AdminDashboard() {
                       {fmtPct(row.referralCommissionPct)} ({colorVal(row.referralCommissionAmount, true)})
                     </td>
                     <td className={`${colCell}${xh("credit")}${xv("credit")}`}>
-                      <EditableCreditCell rowId={row.id} value={row.credit} onSave={saveRowCredit} />
+                      <EditableCreditCell rowId={row.id} value={row.credit} onSave={saveRowCredit} canEdit={can("edit_agents")} />
                     </td>
 
                     {/* Actions — same label-from-behind + sibling shift as Financial Statistics toolbar */}
@@ -1152,48 +1171,54 @@ export default function AdminDashboard() {
                           }}
                           onMouseEnter={() => setVendorRowHoveredAction({ rowId: row.id, slot: 0 })}
                         >
-                          <button
-                            type="button"
-                            aria-label="View"
-                            onClick={() => router.push(`/agent/${row.id}`)}
-                            className="relative z-10 flex items-center justify-center w-6 h-6 rounded text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors duration-300"
-                          >
-                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                            </svg>
-                          </button>
-                          <span
-                            className={`pointer-events-none absolute right-5 top-1/2 -translate-y-1/2 z-20 w-fit whitespace-nowrap rounded-md border border-gray-200 dark:border-gray-700 bg-white/95 dark:bg-gray-900/95 px-2 py-1 text-[11px] font-medium text-gray-600 dark:text-gray-200 shadow-sm text-right transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${rowHover !== null && rowHover.slot === 0 ? "opacity-100 translate-x-0 scale-100" : "opacity-0 translate-x-1 scale-95"}`}
-                          >
-                            View
-                          </span>
+                          {can("view_agents") && (
+                            <>
+                              <button
+                                type="button"
+                                aria-label="View"
+                                onClick={() => router.push(`/agent/${row.id}`)}
+                                className="relative z-10 flex items-center justify-center w-6 h-6 rounded text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors duration-300"
+                              >
+                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                </svg>
+                              </button>
+                              <span
+                                className={`pointer-events-none absolute right-5 top-1/2 -translate-y-1/2 z-20 w-fit whitespace-nowrap rounded-md border border-gray-200 dark:border-gray-700 bg-white/95 dark:bg-gray-900/95 px-2 py-1 text-[11px] font-medium text-gray-600 dark:text-gray-200 shadow-sm text-right transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${rowHover !== null && rowHover.slot === 0 ? "opacity-100 translate-x-0 scale-100" : "opacity-0 translate-x-1 scale-95"}`}
+                              >
+                                View
+                              </span>
+                            </>
+                          )}
                         </div>
-                        <div
-                          className="relative transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
-                          style={{ transform: "translateX(0px)" }}
-                          onMouseEnter={() => setVendorRowHoveredAction({ rowId: row.id, slot: 1 })}
-                        >
-                          <button
-                            type="button"
-                            aria-label="Block"
-                            className="relative z-10 flex items-center justify-center w-6 h-6 rounded text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors duration-300"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              setRemoveConfirmVendorId(row.id);
-                            }}
+                        {can("deactivate_agents") && (
+                          <div
+                            className="relative transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
+                            style={{ transform: "translateX(0px)" }}
+                            onMouseEnter={() => setVendorRowHoveredAction({ rowId: row.id, slot: 1 })}
                           >
-                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                          </button>
-                          <span
-                            className={`pointer-events-none absolute right-5 top-1/2 -translate-y-1/2 z-20 w-fit whitespace-nowrap rounded-md border border-gray-200 dark:border-gray-700 bg-white/95 dark:bg-gray-900/95 px-2 py-1 text-[11px] font-medium text-gray-600 dark:text-gray-200 shadow-sm text-right transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${rowHover !== null && rowHover.slot === 1 ? "opacity-100 translate-x-0 scale-100" : "opacity-0 translate-x-1 scale-95"}`}
-                          >
-                            Block
-                          </span>
-                        </div>
+                            <button
+                              type="button"
+                              aria-label="Block"
+                              className="relative z-10 flex items-center justify-center w-6 h-6 rounded text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors duration-300"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setRemoveConfirmVendorId(row.id);
+                              }}
+                            >
+                              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
+                            <span
+                              className={`pointer-events-none absolute right-5 top-1/2 -translate-y-1/2 z-20 w-fit whitespace-nowrap rounded-md border border-gray-200 dark:border-gray-700 bg-white/95 dark:bg-gray-900/95 px-2 py-1 text-[11px] font-medium text-gray-600 dark:text-gray-200 shadow-sm text-right transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${rowHover !== null && rowHover.slot === 1 ? "opacity-100 translate-x-0 scale-100" : "opacity-0 translate-x-1 scale-95"}`}
+                            >
+                              Block
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </td>
                   </tr>

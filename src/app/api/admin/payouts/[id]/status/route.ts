@@ -5,7 +5,7 @@ import { pool } from "@/lib/db";
 import { paymentImageDbLimitMessage, paymentImageExceedsDbLimit } from "@/lib/payment-image-db-limit";
 import { DISPUTE_BLOCKS_ACTION_MSG, isOpenDispute } from "@/lib/dispute";
 import { emitTransactionRealtime } from "@/lib/realtime/broadcast-transaction";
-import { requireAdminSession } from "@/lib/require-admin-api";
+import { requireAdminPermission } from "@/lib/require-admin-api";
 
 type TxRow = RowDataPacket & {
   id: number;
@@ -38,9 +38,6 @@ function num(v: string | number): number {
 }
 
 export async function PATCH(req: Request, context: { params: { id: string } | Promise<{ id: string }> }) {
-  const auth = await requireAdminSession();
-  if (!auth.ok) return auth.response;
-
   const { id: idRaw } = await Promise.resolve(context.params);
   const txId = Number(idRaw);
   if (!Number.isInteger(txId) || txId < 1) {
@@ -58,6 +55,16 @@ export async function PATCH(req: Request, context: { params: { id: string } | Pr
   if (!toStatus) {
     return NextResponse.json({ ok: false, error: "status is required" }, { status: 400 });
   }
+
+  let requiredPermission: "approve_payouts" | "reject_payouts" | "update_status_payouts" = "update_status_payouts";
+  if (toStatus === "APPROVED_BY_ADMIN" || toStatus === "EXPIRED_APPROVED_BY_ADMIN") {
+    requiredPermission = "approve_payouts";
+  } else if (toStatus === "REJECTED") {
+    requiredPermission = "reject_payouts";
+  }
+
+  const auth = await requireAdminPermission(requiredPermission);
+  if (!auth.ok) return auth.response;
 
   if (paymentImage && paymentImageExceedsDbLimit(paymentImage)) {
     return NextResponse.json({ ok: false, error: paymentImageDbLimitMessage() }, { status: 400 });

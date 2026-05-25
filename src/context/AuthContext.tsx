@@ -10,6 +10,7 @@ export type UserSession = {
   role: UserRole;
   companyId?: number;
   agentId?: number;
+  adminRole?: "SUPER_ADMIN" | "ADMIN";
 };
 
 type AuthContextValue = {
@@ -36,6 +37,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             role: data.role,
             companyId: data.companyId,
             agentId: data.agentId,
+            adminRole: data.adminRole,
           });
         } else {
           setUser(null);

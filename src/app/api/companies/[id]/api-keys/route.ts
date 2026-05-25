@@ -7,10 +7,20 @@ import {
 } from "@/lib/company-api-keys";
 import { requireAdminSession } from "@/lib/require-admin-api";
 
-function parseCompanyId(raw: string): number | null {
-  const id = Number(raw);
-  if (!Number.isInteger(id) || id < 1) return null;
-  return id;
+async function resolveCompanyId(idRaw: string): Promise<number | null> {
+  const isNumeric = /^\d+$/.test(idRaw);
+  if (isNumeric) {
+    const id = Number(idRaw);
+    if (Number.isInteger(id) && id >= 1) return id;
+  }
+  const [rows] = await pool.execute<any[]>(
+    "SELECT `id` FROM `companies` WHERE `company_code` = ? LIMIT 1",
+    [idRaw],
+  );
+  if (rows[0]) {
+    return Number(rows[0].id);
+  }
+  return null;
 }
 
 export async function GET(
@@ -21,9 +31,9 @@ export async function GET(
   if (!auth.ok) return auth.response;
 
   const { id: idRaw } = await Promise.resolve(context.params);
-  const companyId = parseCompanyId(idRaw);
+  const companyId = await resolveCompanyId(idRaw);
   if (!companyId) {
-    return NextResponse.json({ ok: false, error: "Invalid company id" }, { status: 400 });
+    return NextResponse.json({ ok: false, error: "Company not found" }, { status: 404 });
   }
 
   try {
@@ -51,9 +61,9 @@ export async function POST(
   if (!auth.ok) return auth.response;
 
   const { id: idRaw } = await Promise.resolve(context.params);
-  const companyId = parseCompanyId(idRaw);
+  const companyId = await resolveCompanyId(idRaw);
   if (!companyId) {
-    return NextResponse.json({ ok: false, error: "Invalid company id" }, { status: 400 });
+    return NextResponse.json({ ok: false, error: "Company not found" }, { status: 404 });
   }
 
   let body: Record<string, unknown>;

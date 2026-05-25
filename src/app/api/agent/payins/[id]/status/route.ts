@@ -27,7 +27,8 @@ function num(v: string | number): number {
 }
 
 function isValidUtrCode(v: string): boolean {
-  return /^\d{12}$/.test(v);
+  // IMPS = 12 digits, UPI ref = 12 digits, NEFT RRN = 16 digits, some RTGS = 22 digits
+  return /^\d{12,22}$/.test(v);
 }
 
 export async function PATCH(req: Request, context: { params: { id: string } | Promise<{ id: string }> }) {
@@ -109,10 +110,10 @@ export async function PATCH(req: Request, context: { params: { id: string } | Pr
 
     const existingProof = String(tx.payment_image ?? "").trim().length > 0;
     const proofToStore = storedPaymentImage || (existingProof ? String(tx.payment_image ?? "").trim() : "");
-  if ((toStatus === "APPROVED_BY_AGENT" || toStatus === "EXPIRED_APPROVED_BY_AGENT") && !isValidUtrCode(utrCode)) {
-    await conn.rollback();
-    return NextResponse.json({ ok: false, error: "UTR must be exactly 12 digits for approval." }, { status: 400 });
-  }
+    if ((toStatus === "APPROVED_BY_AGENT" || toStatus === "EXPIRED_APPROVED_BY_AGENT") && !isValidUtrCode(utrCode)) {
+      await conn.rollback();
+      return NextResponse.json({ ok: false, error: "UTR/RRN must be between 12 and 22 digits for approval." }, { status: 400 });
+    }
     if ((toStatus === "APPROVED_BY_AGENT" || toStatus === "EXPIRED_APPROVED_BY_AGENT") && !proofToStore) {
       await conn.rollback();
       return NextResponse.json(

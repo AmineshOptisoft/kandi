@@ -286,9 +286,11 @@ function InfoTip({ text }: { text: string }) {
 }
 
 import { useAuth } from "@/context/AuthContext";
+import { useAdminPermissions } from "@/hooks/useAdminPermissions";
 
 export default function CompaniesList() {
   const { loading: authLoading } = useAuth();
+  const { can, loading: permLoading } = useAdminPermissions();
   const [showCreate, setShowCreate] = useState(false);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
@@ -406,6 +408,23 @@ export default function CompaniesList() {
   const start = (page - 1) * PAGE_SIZE + 1;
   const end = Math.min(page * PAGE_SIZE, filtered.length);
 
+  if (permLoading) {
+    return (
+      <div className="flex items-center justify-center p-12">
+        <div className="text-sm text-gray-500">Checking permissions...</div>
+      </div>
+    );
+  }
+
+  if (!can("view_companies")) {
+    return (
+      <div className="flex flex-col items-center justify-center p-12 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800">
+        <h2 className="text-lg font-bold text-gray-900 dark:text-white">Access Denied</h2>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">You do not have permission to view companies.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-5">
       <div className="flex items-center justify-between">
@@ -423,17 +442,19 @@ export default function CompaniesList() {
           fullWidth
         />
       </div>
-        <button
-          type="button"
-          onClick={() => setShowCreate(true)}
-          disabled={!!loadError && companies.length === 0}
-          className="inline-flex items-center gap-2 rounded-xl bg-green-600 hover:bg-green-700 px-4 py-2.5 text-sm font-semibold text-white transition-colors shadow-sm shrink-0 disabled:opacity-50"
-        >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
-          </svg>
-          Add New Company
-        </button>
+        {can("create_companies") && (
+          <button
+            type="button"
+            onClick={() => setShowCreate(true)}
+            disabled={!!loadError && companies.length === 0}
+            className="inline-flex items-center gap-2 rounded-xl bg-green-600 hover:bg-green-700 px-4 py-2.5 text-sm font-semibold text-white transition-colors shadow-sm shrink-0 disabled:opacity-50"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+            </svg>
+            Add New Company
+          </button>
+        )}
         
       </div>
 
@@ -529,7 +550,7 @@ export default function CompaniesList() {
                     <td className="px-5 py-4 text-sm text-gray-500 dark:text-gray-400">{(page - 1) * PAGE_SIZE + idx + 1}</td>
                     <td className="px-5 py-4">
                       <Link
-                        href={`/companies/${c.id}`}
+                        href={`/companies/${c.company_code || c.id}`}
                         className="text-sm font-semibold text-blue-500 block leading-tight hover:underline"
                       >
                         {c.username}
@@ -586,7 +607,7 @@ export default function CompaniesList() {
                     <td className="px-5 py-4">
                       <div className="flex items-center justify-center gap-1.5">
                         <Link
-                          href={`/companies/${c.id}`}
+                          href={`/companies/${c.company_code || c.id}`}
                           title="View details"
                           className="flex items-center justify-center w-8 h-8 rounded-lg text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
                         >
@@ -600,46 +621,50 @@ export default function CompaniesList() {
                             />
                           </svg>
                         </Link>
-                        <button
-                          type="button"
-                          title="Edit company"
-                          onClick={() => setEditCompany(c)}
-                          className="flex items-center justify-center w-8 h-8 rounded-lg text-gray-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors"
-                        >
-                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                            />
-                          </svg>
-                        </button>
-                        <button
-                          type="button"
-                          title={c.status === "ACTIVE" ? "Deactivate" : "Activate"}
-                          onClick={() => void toggleStatus(c)}
-                          className={`flex items-center justify-center w-8 h-8 rounded-lg transition-colors ${c.status === "ACTIVE"
-                            ? "text-green-500 hover:bg-green-50 dark:hover:bg-green-900/20"
-                            : "text-gray-400 hover:text-green-500 hover:bg-green-50 dark:hover:bg-green-900/20"
-                            }`}
-                        >
-                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                        </button>
-
-                        {/* Delete */}
-                        <button
-                          type="button"
-                          title="Delete company"
-                          onClick={() => setRemoveConfirmId(c.id)}
-                          className="flex items-center justify-center w-8 h-8 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-                        >
-                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                        </button>
+                        {can("edit_companies") && (
+                          <button
+                            type="button"
+                            title="Edit company"
+                            onClick={() => setEditCompany(c)}
+                            className="flex items-center justify-center w-8 h-8 rounded-lg text-gray-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors"
+                          >
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                              />
+                            </svg>
+                          </button>
+                        )}
+                        {can("deactivate_companies") && (
+                          <button
+                            type="button"
+                            title={c.status === "ACTIVE" ? "Deactivate" : "Activate"}
+                            onClick={() => void toggleStatus(c)}
+                            className={`flex items-center justify-center w-8 h-8 rounded-lg transition-colors ${c.status === "ACTIVE"
+                              ? "text-green-500 hover:bg-green-50 dark:hover:bg-green-900/20"
+                              : "text-gray-400 hover:text-green-500 hover:bg-green-50 dark:hover:bg-green-900/20"
+                              }`}
+                          >
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                          </button>
+                        )}
+                        {can("delete_companies") && (
+                          <button
+                            type="button"
+                            title="Delete company"
+                            onClick={() => setRemoveConfirmId(c.id)}
+                            className="flex items-center justify-center w-8 h-8 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                          >
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

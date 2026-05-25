@@ -1,6 +1,7 @@
 "use client";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { useAdminPermissions } from "@/hooks/useAdminPermissions";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import EditAgentModal from "./EditAgentModal";
@@ -481,6 +482,7 @@ function AgentPayMethodCard({ pm, onDelete, onEdit, onTogglePayIn, onTogglePayOu
 
 export default function AgentDetail({ id }: { id: string }) {
   const router = useRouter();
+  const { can } = useAdminPermissions();
   const [detail, setDetail] = useState<AgentDetailApi | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -733,28 +735,34 @@ export default function AgentDetail({ id }: { id: string }) {
           </h1>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          <button
-            type="button"
-            onClick={() => setEditOpen(true)}
-            className="rounded-xl bg-blue-500 hover:bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors shadow-sm"
-          >
-            Edit Vendor
-          </button>
-          <button
-            type="button"
-            disabled={toggleBusy}
-            onClick={() => void patchStatus(agent.rawStatus === "active" ? "deactivated" : "active")}
-            className="rounded-xl bg-orange-400 hover:bg-orange-500 px-4 py-2 text-sm font-semibold text-white transition-colors shadow-sm disabled:opacity-50"
-          >
-            {agent.rawStatus === "active" ? "Deactivate" : "Activate"}
-          </button>
-          <button
-            type="button"
-            onClick={() => setPasswordModalOpen(true)}
-            className="rounded-xl bg-violet-600 hover:bg-violet-700 px-4 py-2 text-sm font-semibold text-white transition-colors shadow-sm"
-          >
-            New password
-          </button>
+          {can("edit_agents") && (
+            <button
+              type="button"
+              onClick={() => setEditOpen(true)}
+              className="rounded-xl bg-blue-500 hover:bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors shadow-sm"
+            >
+              Edit Vendor
+            </button>
+          )}
+          {(agent.rawStatus === "active" ? can("deactivate_agents") : can("activate_agents")) && (
+            <button
+              type="button"
+              disabled={toggleBusy}
+              onClick={() => void patchStatus(agent.rawStatus === "active" ? "deactivated" : "active")}
+              className="rounded-xl bg-orange-400 hover:bg-orange-500 px-4 py-2 text-sm font-semibold text-white transition-colors shadow-sm disabled:opacity-50"
+            >
+              {agent.rawStatus === "active" ? "Deactivate" : "Activate"}
+            </button>
+          )}
+          {can("edit_agents") && (
+            <button
+              type="button"
+              onClick={() => setPasswordModalOpen(true)}
+              className="rounded-xl bg-violet-600 hover:bg-violet-700 px-4 py-2 text-sm font-semibold text-white transition-colors shadow-sm"
+            >
+              New password
+            </button>
+          )}
         </div>
       </div>
 
@@ -1056,145 +1064,152 @@ export default function AgentDetail({ id }: { id: string }) {
           {/* ── Payment Accounts tab ── */}
           {activeTab === "accounts" && (
             <div className="p-5 flex flex-col gap-4">
-              {accountsError && (
-                <div className="rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900/40 dark:bg-red-900/20 dark:text-red-300">
-                  {accountsError}
+              {!can("view_payment_accounts") ? (
+                <div className="flex flex-col items-center justify-center py-14 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800">
+                  <h2 className="text-lg font-bold text-gray-900 dark:text-white">Access Denied</h2>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">You do not have permission to view payment accounts.</p>
                 </div>
-              )}
-
-              {payMethods.length === 0 && !accountsError ? (
-                <div className="rounded-xl border border-gray-200 dark:border-gray-800 py-14 text-center text-gray-400 dark:text-gray-500">
-                  <svg className="w-8 h-8 mx-auto mb-2 text-gray-300 dark:text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                  </svg>
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">No payment accounts yet</p>
-                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-500 max-w-sm mx-auto">
-                    The agent will add the payment method from their panel — all linked methods will be displayed here.
-                  </p>
-                </div>
-              ) : null}
-
-              {payMethods.length > 0 ? (
+              ) : (
                 <>
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <h3 className="text-base font-bold text-gray-900 dark:text-white">Payment accounts</h3>
-                      <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-semibold text-gray-600 dark:bg-gray-800 dark:text-gray-300">
-                        {payMethods.length} {payMethods.length === 1 ? "account" : "accounts"}
-                      </span>
+                  {accountsError && (
+                    <div className="rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900/40 dark:bg-red-900/20 dark:text-red-300">
+                      {accountsError}
                     </div>
-                    <div className="w-64">
-                      <DateRangePicker
-                        value={dateRangeAccounts}
-                        onChange={(r) => setDateRangeAccounts(r)}
-                      />
+                  )}
+
+                  {payMethods.length === 0 && !accountsError ? (
+                    <div className="rounded-xl border border-gray-200 dark:border-gray-800 py-14 text-center text-gray-400 dark:text-gray-500">
+                      <svg className="w-8 h-8 mx-auto mb-2 text-gray-300 dark:text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                      </svg>
+                      <p className="text-sm font-medium text-gray-600 dark:text-gray-400">No payment accounts yet</p>
+                      <p className="mt-1 text-xs text-gray-500 dark:text-gray-500 max-w-sm mx-auto">
+                        The agent will add the payment method from their panel — all linked methods will be displayed here.
+                      </p>
                     </div>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {payMethods.map((pm) => (
-                      <AgentPayMethodCard
-                        key={pm.id}
-                        pm={pm}
-                        onDelete={async (pmId) => {
-                          if (!confirm("Delete this payment account? This cannot be undone.")) return;
-                          try {
-                            const res = await fetch(`/api/admin/agents/${id}/pay-methods/${pmId}`, {
-                              method: "DELETE",
-                              credentials: "include",
-                            });
-                            const d = await res.json().catch(() => ({}));
-                            if (!res.ok || !d.ok) {
-                              setAccountsError(d.error ?? "Could not delete account.");
-                              return;
-                            }
-                            await load();
-                          } catch {
-                            setAccountsError("Network error.");
-                          }
-                        }}
-                        onEdit={(pmRow) => {
-                          setEditPaymentMethod(payMethodStaffApiToEditPayload(pmRow));
-                          setShowCreateModal(true);
-                        }}
-                        onTogglePayIn={async (pmRow) => {
-                          const originalState = pmRow.pay_in_enabled;
+                  ) : null}
 
-                          // Optimistic update
-                          setPayMethods(prev => prev.map(p =>
-                            p.id === pmRow.id ? { ...p, pay_in_enabled: !originalState } : p
-                          ));
+                  {payMethods.length > 0 ? (
+                    <>
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                          <h3 className="text-base font-bold text-gray-900 dark:text-white">Payment accounts</h3>
+                          <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-semibold text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+                            {payMethods.length} {payMethods.length === 1 ? "account" : "accounts"}
+                          </span>
+                        </div>
+                        <div className="w-64">
+                          <DateRangePicker
+                            value={dateRangeAccounts}
+                            onChange={(r) => setDateRangeAccounts(r)}
+                          />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {payMethods.map((pm) => (
+                          <AgentPayMethodCard
+                            key={pm.id}
+                            pm={pm}
+                            onDelete={can("delete_payment_accounts") ? async (pmId) => {
+                              if (!confirm("Delete this payment account? This cannot be undone.")) return;
+                              try {
+                                const res = await fetch(`/api/admin/agents/${id}/pay-methods/${pmId}`, {
+                                  method: "DELETE",
+                                  credentials: "include",
+                                });
+                                const d = await res.json().catch(() => ({}));
+                                if (!res.ok || !d.ok) {
+                                  setAccountsError(d.error ?? "Could not delete account.");
+                                  return;
+                                }
+                                await load();
+                              } catch {
+                                setAccountsError("Network error.");
+                              }
+                            } : undefined}
+                            onEdit={can("edit_payment_accounts") ? (pmRow) => {
+                              setEditPaymentMethod(payMethodStaffApiToEditPayload(pmRow));
+                              setShowCreateModal(true);
+                            } : undefined}
+                            onTogglePayIn={(can("enable_payin") || can("disable_payin")) ? async (pmRow) => {
+                              const originalState = pmRow.pay_in_enabled;
+                              // Check specific permission for the action about to be taken
+                              if (originalState && !can("disable_payin")) return;
+                              if (!originalState && !can("enable_payin")) return;
 
-                          try {
-                            const res = await fetch(`/api/admin/agents/${id}/pay-methods/${pmRow.id}`, {
-                              method: "PATCH",
-                              credentials: "include",
-                              headers: { "Content-Type": "application/json" },
-                              body: JSON.stringify({ pay_in_enabled: !originalState }),
-                            });
-                            const d = await res.json().catch(() => ({}));
-                            if (!res.ok || !d.ok) {
-                              // Revert on error
                               setPayMethods(prev => prev.map(p =>
-                                p.id === pmRow.id ? { ...p, pay_in_enabled: originalState } : p
+                                p.id === pmRow.id ? { ...p, pay_in_enabled: !originalState } : p
                               ));
-                              setAccountsError(d.error ?? "Could not update account.");
-                              return;
-                            }
-                            if (d.payment_method) {
-                              setPayMethods(prev => prev.map(p =>
-                                p.id === pmRow.id ? d.payment_method : p
-                              ));
-                            }
-                          } catch {
-                            // Revert on error
-                            setPayMethods(prev => prev.map(p =>
-                              p.id === pmRow.id ? { ...p, pay_in_enabled: originalState } : p
-                            ));
-                            setAccountsError("Network error.");
-                          }
-                        }}
-                        onTogglePayOut={async (pmRow) => {
-                          const originalState = pmRow.pay_out_enabled;
+                              try {
+                                const res = await fetch(`/api/admin/agents/${id}/pay-methods/${pmRow.id}`, {
+                                  method: "PATCH",
+                                  credentials: "include",
+                                  headers: { "Content-Type": "application/json" },
+                                  body: JSON.stringify({ pay_in_enabled: !originalState }),
+                                });
+                                const d = await res.json().catch(() => ({}));
+                                if (!res.ok || !d.ok) {
+                                  setPayMethods(prev => prev.map(p =>
+                                    p.id === pmRow.id ? { ...p, pay_in_enabled: originalState } : p
+                                  ));
+                                  setAccountsError(d.error ?? "Could not update account.");
+                                  return;
+                                }
+                                if (d.payment_method) {
+                                  setPayMethods(prev => prev.map(p =>
+                                    p.id === pmRow.id ? d.payment_method : p
+                                  ));
+                                }
+                              } catch {
+                                setPayMethods(prev => prev.map(p =>
+                                  p.id === pmRow.id ? { ...p, pay_in_enabled: originalState } : p
+                                ));
+                                setAccountsError("Network error.");
+                              }
+                            } : undefined}
+                            onTogglePayOut={(can("enable_payout") || can("disable_payout")) ? async (pmRow) => {
+                              const originalState = pmRow.pay_out_enabled;
+                              // Check specific permission for the action about to be taken
+                              if (originalState && !can("disable_payout")) return;
+                              if (!originalState && !can("enable_payout")) return;
 
-                          // Optimistic update
-                          setPayMethods(prev => prev.map(p =>
-                            p.id === pmRow.id ? { ...p, pay_out_enabled: !originalState } : p
-                          ));
-
-                          try {
-                            const res = await fetch(`/api/admin/agents/${id}/pay-methods/${pmRow.id}`, {
-                              method: "PATCH",
-                              credentials: "include",
-                              headers: { "Content-Type": "application/json" },
-                              body: JSON.stringify({ pay_out_enabled: !originalState }),
-                            });
-                            const d = await res.json().catch(() => ({}));
-                            if (!res.ok || !d.ok) {
-                              // Revert on error
                               setPayMethods(prev => prev.map(p =>
-                                p.id === pmRow.id ? { ...p, pay_out_enabled: originalState } : p
+                                p.id === pmRow.id ? { ...p, pay_out_enabled: !originalState } : p
                               ));
-                              setAccountsError(d.error ?? "Could not update account.");
-                              return;
-                            }
-                            if (d.payment_method) {
-                              setPayMethods(prev => prev.map(p =>
-                                p.id === pmRow.id ? d.payment_method : p
-                              ));
-                            }
-                          } catch {
-                            // Revert on error
-                            setPayMethods(prev => prev.map(p =>
-                              p.id === pmRow.id ? { ...p, pay_out_enabled: originalState } : p
-                            ));
-                            setAccountsError("Network error.");
-                          }
-                        }}
-                      />
-                    ))}
-                  </div>
+                              try {
+                                const res = await fetch(`/api/admin/agents/${id}/pay-methods/${pmRow.id}`, {
+                                  method: "PATCH",
+                                  credentials: "include",
+                                  headers: { "Content-Type": "application/json" },
+                                  body: JSON.stringify({ pay_out_enabled: !originalState }),
+                                });
+                                const d = await res.json().catch(() => ({}));
+                                if (!res.ok || !d.ok) {
+                                  setPayMethods(prev => prev.map(p =>
+                                    p.id === pmRow.id ? { ...p, pay_out_enabled: originalState } : p
+                                  ));
+                                  setAccountsError(d.error ?? "Could not update account.");
+                                  return;
+                                }
+                                if (d.payment_method) {
+                                  setPayMethods(prev => prev.map(p =>
+                                    p.id === pmRow.id ? d.payment_method : p
+                                  ));
+                                }
+                              } catch {
+                                setPayMethods(prev => prev.map(p =>
+                                  p.id === pmRow.id ? { ...p, pay_out_enabled: originalState } : p
+                                ));
+                                setAccountsError("Network error.");
+                              }
+                            } : undefined}
+                          />
+                        ))}
+                      </div>
+                    </>
+                  ) : null}
                 </>
-              ) : null}
+              )}
             </div>
           )}
         </div>

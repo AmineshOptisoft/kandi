@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { RowDataPacket } from "mysql2/promise";
 import { pool } from "@/lib/db";
-import { requireAdminSession } from "@/lib/require-admin-api";
+import { requireAdminSession, hasAdminPermission } from "@/lib/require-admin-api";
 
 type TxRow = RowDataPacket & {
   id: number;
@@ -64,10 +64,21 @@ export async function GET(_req: Request, context: { params: { id: string } | Pro
      FROM \`transactions\`
      WHERE \`id\` = ?
      LIMIT 1`,
-    [txId],
+     [txId],
   );
   const tx = rows[0];
   if (!tx) return NextResponse.json({ ok: false, error: "Transaction not found" }, { status: 404 });
+
+  const txType = String(tx.type).toUpperCase();
+  const primaryPermission = txType === "PAYOUT" ? "view_payouts" : "view_payins";
+  const hasPerm = await hasAdminPermission(auth.adminId, auth.role, "view_transactions") ||
+                  await hasAdminPermission(auth.adminId, auth.role, primaryPermission);
+  if (!hasPerm) {
+    return NextResponse.json(
+      { ok: false, error: `Forbidden: requires view_transactions or ${primaryPermission} privilege` },
+      { status: 403 },
+    );
+  }
 
   let assignedAgent = "—";
   if (tx.assigned_agent_id) {

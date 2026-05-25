@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { RowDataPacket } from "mysql2/promise";
 import { AGENT_SETTLED_LEDGER_STATUSES } from "@/lib/agent-ledger-statuses";
 import { pool } from "@/lib/db";
-import { requireAdminSession } from "@/lib/require-admin-api";
+import { requireAdminPermission } from "@/lib/require-admin-api";
 
 type AgentRow = RowDataPacket & {
   id: number;
@@ -38,7 +38,7 @@ function num(v: string | number | null | undefined): number {
 const LEDGER_STATUSES = [...AGENT_SETTLED_LEDGER_STATUSES];
 
 export async function GET(req: Request) {
-  const auth = await requireAdminSession();
+  const auth = await requireAdminPermission("view_ledger");
   if (!auth.ok) return auth.response;
 
   const { searchParams } = new URL(req.url);

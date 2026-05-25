@@ -16,7 +16,7 @@ import {
   type SettlementTxnType,
   type SettlementType,
 } from "@/lib/settlement";
-import { requireAdminSession } from "@/lib/require-admin-api";
+import { requireAdminPermission } from "@/lib/require-admin-api";
 
 type SettlementRow = RowDataPacket & {
   id: number;
@@ -190,7 +190,7 @@ async function fetchSettlementById(
 }
 
 export async function GET(req: Request) {
-  const auth = await requireAdminSession();
+  const auth = await requireAdminPermission("view_settlements");
   if (!auth.ok) return auth.response;
 
   const { searchParams } = new URL(req.url);
@@ -256,7 +256,7 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  const auth = await requireAdminSession();
+  const auth = await requireAdminPermission("create_settlements");
   if (!auth.ok) return auth.response;
 
   let body: Record<string, unknown>;

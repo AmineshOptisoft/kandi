@@ -8,7 +8,7 @@ import { DISPUTE_BLOCKS_ACTION_MSG, isOpenDispute } from "@/lib/dispute";
 import { emitTransactionRealtime } from "@/lib/realtime/broadcast-transaction";
 import { sendPayinWebhookForTxStatusChange } from "@/lib/integrations/speedpay/outbound-webhook";
 import { canAdminVerifyPayIn } from "@/lib/payin-lifecycle";
-import { requireAdminSession } from "@/lib/require-admin-api";
+import { requireAdminPermission } from "@/lib/require-admin-api";
 
 type TxRow = RowDataPacket & {
   id: number;
@@ -27,13 +27,11 @@ function num(v: string | number): number {
 }
 
 function isValidUtrCode(v: string): boolean {
-  return /^\d{12}$/.test(v);
+  // IMPS = 12 digits, UPI ref = 12 digits, NEFT RRN = 16 digits, some RTGS = 22 digits
+  return /^\d{12,22}$/.test(v);
 }
 
 export async function PATCH(req: Request, context: { params: { id: string } | Promise<{ id: string }> }) {
-  const auth = await requireAdminSession();
-  if (!auth.ok) return auth.response;
-
   const { id: idRaw } = await Promise.resolve(context.params);
   const txId = Number(idRaw);
   if (!Number.isInteger(txId) || txId < 1) {
@@ -52,6 +50,16 @@ export async function PATCH(req: Request, context: { params: { id: string } | Pr
   if (!toStatus) {
     return NextResponse.json({ ok: false, error: "status is required" }, { status: 400 });
   }
+
+  let requiredPermission: "approve_payins" | "reject_payins" | "update_status_payins" = "update_status_payins";
+  if (toStatus === "APPROVED_BY_ADMIN" || toStatus === "EXPIRED_APPROVED_BY_ADMIN") {
+    requiredPermission = "approve_payins";
+  } else if (toStatus === "REJECTED") {
+    requiredPermission = "reject_payins";
+  }
+
+  const auth = await requireAdminPermission(requiredPermission);
+  if (!auth.ok) return auth.response;
 
   if (paymentImage && paymentImageExceedsDbLimit(paymentImage)) {
     return NextResponse.json({ ok: false, error: paymentImageDbLimitMessage() }, { status: 400 });
@@ -108,10 +116,10 @@ export async function PATCH(req: Request, context: { params: { id: string } | Pr
 
     const existingProof = String(tx.payment_image ?? "").trim().length > 0;
     const proofToStore = storedPaymentImage || (existingProof ? String(tx.payment_image ?? "").trim() : "");
-  if ((toStatus === "APPROVED_BY_ADMIN" || toStatus === "EXPIRED_APPROVED_BY_ADMIN") && !isValidUtrCode(utrCode)) {
-    await conn.rollback();
-    return NextResponse.json({ ok: false, error: "UTR must be exactly 12 digits for approval." }, { status: 400 });
-  }
+    if ((toStatus === "APPROVED_BY_ADMIN" || toStatus === "EXPIRED_APPROVED_BY_ADMIN") && !isValidUtrCode(utrCode)) {
+      await conn.rollback();
+      return NextResponse.json({ ok: false, error: "UTR must be 12–22 digits for approval." }, { status: 400 });
+    }
     if ((toStatus === "APPROVED_BY_ADMIN" || toStatus === "EXPIRED_APPROVED_BY_ADMIN") && !proofToStore) {
       await conn.rollback();
       return NextResponse.json(

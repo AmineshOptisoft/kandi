@@ -7,10 +7,10 @@ import {
   SETTLEMENT_MIGRATION_HINT,
   type SettlementPartyType,
 } from "@/lib/settlement";
-import { requireAdminSession } from "@/lib/require-admin-api";
+import { requireAdminPermission } from "@/lib/require-admin-api";
 
 export async function GET(req: Request) {
-  const auth = await requireAdminSession();
+  const auth = await requireAdminPermission("view_settlements");
   if (!auth.ok) return auth.response;
 
   const { searchParams } = new URL(req.url);

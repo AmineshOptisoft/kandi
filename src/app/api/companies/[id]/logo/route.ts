@@ -18,9 +18,22 @@ export async function POST(req: Request, context: { params: { id: string } | Pro
   if (!auth.ok) return auth.response;
 
   const { id: idRaw } = await Promise.resolve(context.params);
-  const cid = Number(idRaw);
-  if (!Number.isInteger(cid) || cid < 1) {
-    return NextResponse.json({ ok: false, error: "Invalid id" }, { status: 400 });
+  let cid: number | null = null;
+  const isNumeric = /^\d+$/.test(idRaw);
+  if (isNumeric) {
+    cid = Number(idRaw);
+  } else {
+    const [comp] = await pool.execute<any[]>(
+      "SELECT `id` FROM `companies` WHERE `company_code` = ? LIMIT 1",
+      [idRaw],
+    );
+    if (comp[0]) {
+      cid = Number(comp[0].id);
+    }
+  }
+
+  if (!cid || !Number.isInteger(cid) || cid < 1) {
+    return NextResponse.json({ ok: false, error: "Company not found" }, { status: 404 });
   }
 
   let formData: FormData;

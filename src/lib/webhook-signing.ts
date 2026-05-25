@@ -1,11 +1,9 @@
 import { pool } from '@/lib/db';
 import type { RowDataPacket } from 'mysql2/promise';
-/** HMAC secret for outbound PayIn webhooks (PDF: signed with merchant API key). */
+
+/** HMAC secret for outbound PayIn webhooks. */
 export function webhookSigningSecret(): string | null {
-  // Use COMPANY_API_KEY if set – this is the key used by the company to sign webhooks.
-  // Fallback to WEBHOOK_SIGNING_SECRET (legacy) or SPEEDPAY_API_KEY for backward compatibility.
   return (
-    process.env.COMPANY_API_KEY?.trim() ||
     process.env.WEBHOOK_SIGNING_SECRET?.trim() ||
     process.env.SPEEDPAY_API_KEY?.trim()
   ) ?? null;
@@ -13,23 +11,24 @@ export function webhookSigningSecret(): string | null {
 
 /**
  * Fetch the webhook signing secret for a specific company.
- * Returns the company's api_key if present, otherwise falls back to the global env vars.
+ * Checks for a per-company `webhook_secret` column first (if it exists),
+ * then falls back to the global WEBHOOK_SIGNING_SECRET env var.
+ * 
+ * NOTE: Do NOT use `key_hash` (hashed API key) as a signing secret —
+ * merchants cannot know the hash value to verify signatures.
  */
 export async function getCompanyWebhookSecret(companyId: number): Promise<string | null> {
   try {
-    // The column storing the raw secret is `key_hash` (hashed) – we fall back to the global secret if needed.
+    // Check if companies table has a dedicated webhook_secret column
     const [rows] = await pool.execute<RowDataPacket[]>(
-      `SELECT key_hash FROM company_api_keys WHERE company_id = ? LIMIT 1`,
+      `SELECT webhook_secret FROM companies WHERE id = ? LIMIT 1`,
       [companyId]
     );
-    if (rows.length && (rows[0] as any).key_hash) return (rows[0] as any).key_hash.trim();
-  } catch (e) {
-    console.error('Failed to load company webhook key:', e);
+    const secret = (rows[0] as { webhook_secret?: string | null } | undefined)?.webhook_secret?.trim();
+    if (secret) return secret;
+  } catch {
+    // Column may not exist yet — fall through to global secret
   }
-  // fallback to global secret
-  return (
-    process.env.COMPANY_API_KEY?.trim() ||
-    process.env.WEBHOOK_SIGNING_SECRET?.trim() ||
-    process.env.SPEEDPAY_API_KEY?.trim()
-  ) ?? null;
+  // Fall back to global env secret (shared with all merchants)
+  return webhookSigningSecret();
 }

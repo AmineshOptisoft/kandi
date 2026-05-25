@@ -18,6 +18,7 @@ export type MerchantPayinCreateInput = {
   amount: number;
   return_url?: string | null;
   note?: string | null;
+  method?: "UPI" | "BANK" | null;
 };
 
 export async function createMerchantPayIn(
@@ -31,6 +32,7 @@ export async function createMerchantPayIn(
   }
 
   const note = input.note?.trim() || "";
+  const method = (input.method === "BANK" ? "BANK" : "UPI") as "UPI" | "BANK";
   const result = await createPublicPayIn(
     { id: company.id, status: "ACTIVE" },
     {
@@ -38,7 +40,7 @@ export async function createMerchantPayIn(
       return_url: input.return_url ?? undefined,
       note: note || undefined,
       client_name: note || "API PayIn",
-      method: "UPI",
+      method,
     },
   );
 

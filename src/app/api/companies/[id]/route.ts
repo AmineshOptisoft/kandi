@@ -61,8 +61,20 @@ function mapPublic(r: CompanyRow) {
   };
 }
 
-async function getIdParam(context: { params: { id: string } | Promise<{ id: string }> }) {
-  return Promise.resolve(context.params);
+async function resolveCompanyId(idRaw: string): Promise<number | null> {
+  const isNumeric = /^\d+$/.test(idRaw);
+  if (isNumeric) {
+    const id = Number(idRaw);
+    if (Number.isInteger(id) && id >= 1) return id;
+  }
+  const [rows] = await pool.execute<RowDataPacket[]>(
+    "SELECT `id` FROM `companies` WHERE `company_code` = ? LIMIT 1",
+    [idRaw],
+  );
+  if (rows[0]) {
+    return Number(rows[0].id);
+  }
+  return null;
 }
 
 export async function GET(
@@ -72,10 +84,10 @@ export async function GET(
   const auth = await requireAdminSession();
   if (!auth.ok) return auth.response;
 
-  const { id: idRaw } = await getIdParam(context);
-  const id = Number(idRaw);
-  if (!Number.isInteger(id) || id < 1) {
-    return NextResponse.json({ ok: false, error: "Invalid id" }, { status: 400 });
+  const { id: idRaw } = await Promise.resolve(context.params);
+  const id = await resolveCompanyId(idRaw);
+  if (!id) {
+    return NextResponse.json({ ok: false, error: "Company not found" }, { status: 404 });
   }
 
   const includeCommission = await hasCommissionColumn();
@@ -125,10 +137,10 @@ export async function PATCH(
   const auth = await requireAdminSession();
   if (!auth.ok) return auth.response;
 
-  const { id: idRaw } = await getIdParam(context);
-  const id = Number(idRaw);
-  if (!Number.isInteger(id) || id < 1) {
-    return NextResponse.json({ ok: false, error: "Invalid id" }, { status: 400 });
+  const { id: idRaw } = await Promise.resolve(context.params);
+  const id = await resolveCompanyId(idRaw);
+  if (!id) {
+    return NextResponse.json({ ok: false, error: "Company not found" }, { status: 404 });
   }
 
   let body: Record<string, unknown>;
@@ -235,10 +247,10 @@ export async function DELETE(
   const auth = await requireAdminSession();
   if (!auth.ok) return auth.response;
 
-  const { id: idRaw } = await getIdParam(context);
-  const id = Number(idRaw);
-  if (!Number.isInteger(id) || id < 1) {
-    return NextResponse.json({ ok: false, error: "Invalid id" }, { status: 400 });
+  const { id: idRaw } = await Promise.resolve(context.params);
+  const id = await resolveCompanyId(idRaw);
+  if (!id) {
+    return NextResponse.json({ ok: false, error: "Company not found" }, { status: 404 });
   }
 
   try {

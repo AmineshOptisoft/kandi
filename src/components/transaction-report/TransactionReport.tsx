@@ -16,6 +16,7 @@ import DateRangePicker, { DateRange } from "@/components/dashboard/DateRangePick
 import { appendDateRangeToUrl, daysAgoInputDate, toInputDate, todayInputDate } from "@/lib/date-range";
 import { TransactionReportIcon } from "@/icons/nav-icons";
 import { useAuth } from "@/context/AuthContext";
+import { useAdminPermissions } from "@/hooks/useAdminPermissions";
 
 type Tx = {
   id: string;
@@ -79,6 +80,7 @@ function aggregateByStatus(payIns: Tx[], payOuts: Tx[]): TransactionStatusDistri
 
 export default function TransactionReport() {
   const { user } = useAuth();
+  const { can, loading: permissionsLoading } = useAdminPermissions();
   const [payIns, setPayIns] = useState<Tx[]>([]);
   const [payOuts, setPayOuts] = useState<Tx[]>([]);
   const [loading, setLoading] = useState(true);
@@ -90,7 +92,11 @@ export default function TransactionReport() {
 
   useEffect(() => {
     let mounted = true;
-    if (authLoading) return;
+    if (authLoading || (role === "admin" && permissionsLoading)) return;
+    if (role === "admin" && !can("view_reports")) {
+      setLoading(false);
+      return;
+    }
     (async () => {
       setLoading(true);
       setError(null);
@@ -250,8 +256,23 @@ export default function TransactionReport() {
         ],
     },
   ];
-
   const statusDistributionRows = aggregateByStatus(payIns, payOuts);
+
+  if (role === "admin" && !permissionsLoading && !can("view_reports")) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-white/[0.03] p-8 text-center">
+        <div className="w-16 h-16 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center text-red-600 dark:text-red-400 mb-4">
+          <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+          </svg>
+        </div>
+        <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Access Denied</h3>
+        <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm">
+          You do not have permission to view Transaction Reports. Please contact your system administrator if you believe this is in error.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-4">

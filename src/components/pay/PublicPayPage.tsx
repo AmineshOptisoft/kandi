@@ -54,7 +54,7 @@ const TARGET_MAX_PROOF_DATA_URL_CHARS = 480_000;
 const MAX_PROOF_IMAGE_RAW_BYTES = 20 * 1024 * 1024;
 /** PDF proof is sent as data URL (~4/3 size); keep small. */
 const MAX_PROOF_PDF_RAW_BYTES = 380 * 1024;
-const UTR_12_DIGIT_REGEX = /^\d{12}$/;
+const UTR_12_DIGIT_REGEX = /^\d{12,22}$/; // IMPS=12, UPI=12, NEFT RRN=16, RTGS=22;
 
 function readFileAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -425,7 +425,7 @@ export default function PublicPayPage({ companyKey }: { companyKey: string }) {
     const utr = utrInput.trim();
     const image = proofDataUrl?.trim() ?? "";
     if (!UTR_12_DIGIT_REGEX.test(utr)) {
-      setProofError("UTR must be exactly 12 digits.");
+      setProofError("UTR/RRN must be 12–22 digits (IMPS/UPI=12, NEFT=16, RTGS=22).");
       return;
     }
     if (!image) {

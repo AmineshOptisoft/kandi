@@ -9,7 +9,7 @@ import {
 import { validateAgentPayMethodPayload } from "@/lib/agent-pay-method-limits";
 import { pool } from "@/lib/db";
 import { isMysqlErNoSuchTable, PAY_METHODS_TABLE_HINT } from "@/lib/mysql-table-error";
-import { requireAdminSession } from "@/lib/require-admin-api";
+import { requireAdminPermission } from "@/lib/require-admin-api";
 import { loadPayMethodFinancials } from "@/lib/transactions-pay-method-financials";
 import { parseDateRangeFromSearchParams } from "@/lib/date-range";
 import { jsonStringOrNumberField } from "@/lib/auth-body";
@@ -27,7 +27,7 @@ export async function GET(
   _req: Request,
   context: { params: { id: string } | Promise<{ id: string }> },
 ) {
-  const auth = await requireAdminSession();
+  const auth = await requireAdminPermission("view_agents");
   if (!auth.ok) return auth.response;
 
   const { id: idRaw } = await Promise.resolve(context.params);
@@ -75,7 +75,7 @@ export async function POST(
   req: Request,
   context: { params: { id: string } | Promise<{ id: string }> },
 ) {
-  const auth = await requireAdminSession();
+  const auth = await requireAdminPermission("edit_agents");
   if (!auth.ok) return auth.response;
 
   const { id: idRaw } = await Promise.resolve(context.params);

@@ -1,9 +1,12 @@
 import { createHmac, timingSafeEqual } from "crypto";
 
+export type AdminRole = "SUPER_ADMIN" | "ADMIN";
+
 export type AdminSessionPayload = {
   v: 1;
   adminId: number;
   email: string;
+  role: AdminRole;
   exp: number;
 };
 
@@ -58,11 +61,11 @@ function verifySignedJson<T extends { exp: number }>(
 }
 
 export function signAdminSession(
-  input: { adminId: number; email: string },
+  input: { adminId: number; email: string; role: AdminRole },
   secret: string,
   maxAgeMs = defaultMaxAgeMs,
 ): string {
-  const payload: Omit<AdminSessionPayload, "exp"> = { v: 1, adminId: input.adminId, email: input.email };
+  const payload: Omit<AdminSessionPayload, "exp"> = { v: 1, adminId: input.adminId, email: input.email, role: input.role };
   return signJson(payload, secret, maxAgeMs);
 }
 
@@ -73,7 +76,9 @@ export function verifyAdminSession(token: string, secret: string): AdminSessionP
     if (o.v !== 1 || typeof o.adminId !== "number" || typeof o.email !== "string" || typeof o.exp !== "number") {
       return null;
     }
-    return o as unknown as AdminSessionPayload;
+    // Backward compat: tokens without role default to SUPER_ADMIN so existing sessions keep working
+    const role: AdminRole = o.role === "ADMIN" ? "ADMIN" : "SUPER_ADMIN";
+    return { ...o, role } as unknown as AdminSessionPayload;
   });
 }
 

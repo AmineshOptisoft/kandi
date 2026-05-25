@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { useAdminPermissions } from "@/hooks/useAdminPermissions";
 import { ListIcon } from "@/icons";
 import { Table, TableBody, TableCell, TableHeader, TableRow } from "@/components/ui/table";
 
@@ -47,6 +48,7 @@ function formatDateOnly(v: string | null): string {
 }
 
 export default function InterledgerHistoryList() {
+  const { can, loading: permLoading } = useAdminPermissions();
   const [items, setItems] = useState<InterledgerItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -77,6 +79,23 @@ export default function InterledgerHistoryList() {
   useEffect(() => {
     void loadHistory();
   }, [loadHistory]);
+
+  if (permLoading) {
+    return (
+      <div className="flex items-center justify-center p-12">
+        <div className="text-sm text-gray-500">Checking permissions...</div>
+      </div>
+    );
+  }
+
+  if (!can("add_interledger")) {
+    return (
+      <div className="flex flex-col items-center justify-center p-12 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800">
+        <h2 className="text-lg font-bold text-gray-900 dark:text-white">Access Denied</h2>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">You do not have permission to view interledger history.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-4">

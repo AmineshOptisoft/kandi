@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { pool } from "@/lib/db";
-import { requireAdminSession } from "@/lib/require-admin-api";
+import { requireAdminPermission } from "@/lib/require-admin-api";
 import type { RowDataPacket } from "mysql2/promise";
 
 type InterledgerRow = RowDataPacket & {
@@ -18,7 +18,7 @@ type InterledgerRow = RowDataPacket & {
 };
 
 export async function GET(req: Request) {
-  const auth = await requireAdminSession();
+  const auth = await requireAdminPermission("view_security_deposits");
   if (!auth.ok) return auth.response;
 
   try {

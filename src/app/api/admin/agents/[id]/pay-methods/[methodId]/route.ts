@@ -10,7 +10,7 @@ import {
 import { validateAgentPayMethodPayload } from "@/lib/agent-pay-method-limits";
 import { pool } from "@/lib/db";
 import { isMysqlErNoSuchTable, PAY_METHODS_TABLE_HINT } from "@/lib/mysql-table-error";
-import { requireAdminSession } from "@/lib/require-admin-api";
+import { requireAdminPermission } from "@/lib/require-admin-api";
 import { loadPayMethodFinancials } from "@/lib/transactions-pay-method-financials";
 
 type AgentRow = RowDataPacket & { username: string | null };
@@ -42,7 +42,7 @@ export async function PATCH(
   req: Request,
   context: { params: { id: string; methodId: string } | Promise<{ id: string; methodId: string }> }
 ) {
-  const auth = await requireAdminSession();
+  const auth = await requireAdminPermission("edit_agents");
   if (!auth.ok) return auth.response;
 
   const resolvedParams = await Promise.resolve(context.params);
@@ -236,7 +236,7 @@ export async function DELETE(
   _req: Request,
   context: { params: { id: string; methodId: string } | Promise<{ id: string; methodId: string }> }
 ) {
-  const auth = await requireAdminSession();
+  const auth = await requireAdminPermission("edit_agents");
   if (!auth.ok) return auth.response;
 
   const resolvedParams = await Promise.resolve(context.params);

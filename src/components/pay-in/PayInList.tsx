@@ -11,12 +11,13 @@ import { PayInIcon } from "@/icons/nav-icons";
 import CompanyPayInView from "./CompanyPayInView";
 import { useTransactionRealtimeRefresh } from "@/hooks/useTransactionRealtimeRefresh";
 import { useAuth } from "@/context/AuthContext";
+import { useAdminPermissions } from "@/hooks/useAdminPermissions";
 import { toInputDate } from "@/lib/date-range";
 
 const PAGE_SIZE = 10;
 
 const MAX_PROOF_BYTES = 5 * 1024 * 1024;
-const UTR_12_DIGIT_REGEX = /^\d{12}$/;
+const UTR_12_DIGIT_REGEX = /^\d{12,22}$/; // IMPS=12, UPI=12, NEFT RRN=16, RTGS=22;
 
 type PayInStatus = "PENDING" | "APPROVED" | "EXPIRED" | "RECEIPT_PENDING" | "UNASSIGNED" | "PROCESSING" | "EXPIRED_APPROVED_BY_ADMIN" | "EXPIRED_APPROVED_BY_AGENT" | "DECLINED";
 
@@ -250,6 +251,9 @@ function PayInCard({
   busy,
   isAdmin,
   onDispute,
+  canApprove,
+  canDecline,
+  canDispute,
 }: {
   item: PayInItem;
   onOpenAction: (item: PayInItem, initialAction: "approve" | "reject" | "cancel") => void;
@@ -258,6 +262,9 @@ function PayInCard({
   busy?: boolean;
   isAdmin?: boolean;
   onDispute?: (item: PayInItem) => void;
+  canApprove?: boolean;
+  canDecline?: boolean;
+  canDispute?: boolean;
 }) {
   // Desktop: chevron toggles extra details (Total Amount, Discount, etc.)
   // Mobile: chevron toggles all details
@@ -281,18 +288,18 @@ function PayInCard({
 
       {/* right-side action buttons */}
       <div className="flex items-center gap-2 shrink-0">
-        {!item.disputeRaised && showApprove(item) && (
+        {!item.disputeRaised && showApprove(item) && (canApprove !== false) && (
           <ApproveButton onClick={() => onOpenAction(item, "approve")} disabled={busy} />
         )}
-        {!item.disputeRaised && showReject(item) && showCancel(item) ? (
+        {!item.disputeRaised && showReject(item) && showCancel(item) && (canDecline !== false) ? (
           <DeclineMenu
             disabled={busy}
             onReject={() => onOpenAction(item, "reject")}
             onRevoke={() => onOpenAction(item, "cancel")}
           />
-        ) : !item.disputeRaised && showReject(item) ? (
+        ) : !item.disputeRaised && showReject(item) && (canDecline !== false) ? (
           <RejectButton onClick={() => onOpenAction(item, "reject")} disabled={busy} />
-        ) : !item.disputeRaised && showCancel(item) ? (
+        ) : !item.disputeRaised && showCancel(item) && (canDecline !== false) ? (
           <button
             type="button"
             disabled={busy}
@@ -302,7 +309,7 @@ function PayInCard({
             Revoke
           </button>
         ) : null}
-        {isAdmin && onDispute && !item.disputeRaised && showActionButtons(item) && (
+        {isAdmin && onDispute && !item.disputeRaised && showActionButtons(item) && canDispute && (
           <button
             type="button"
             disabled={busy}
@@ -442,6 +449,7 @@ type ActionType = "approve" | "reject" | "cancel";
 
 export default function PayInList() {
   const { user, loading: authLoading } = useAuth();
+  const { can, loading: permLoading } = useAdminPermissions();
   const [panelRole, setPanelRole] = useState<"admin" | "agent" | "company">("admin");
   useEffect(() => {
     const role = localStorage.getItem("tepay_role");
@@ -699,7 +707,7 @@ export default function PayInList() {
       }
       const utr = (opts?.utr ?? "").trim();
       if (!UTR_12_DIGIT_REGEX.test(utr)) {
-        setModalError("UTR must be exactly 12 digits.");
+        setModalError("UTR/RRN must be 12–22 digits (IMPS/UPI=12, NEFT=16, RTGS=22).");
         setActionBusyId(null);
         return;
       }
@@ -751,6 +759,25 @@ export default function PayInList() {
     return <CompanyPayInView />;
   }
 
+  if (resolvedRole === "admin") {
+    if (permLoading) {
+      return (
+        <div className="flex items-center justify-center p-12">
+          <div className="text-sm text-gray-500">Checking permissions...</div>
+        </div>
+      );
+    }
+
+    if (!can("view_payins")) {
+      return (
+        <div className="flex flex-col items-center justify-center p-12 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-white">Access Denied</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">You do not have permission to view pay-ins.</p>
+        </div>
+      );
+    }
+  }
+
   return (
     <div className="flex flex-col gap-4">
       {/* Page header */}
@@ -800,16 +827,18 @@ export default function PayInList() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={exportPayInsCsv}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                Export
-              </button>
+              {(resolvedRole !== "admin" || can("export_transactions")) && (
+                <button
+                  type="button"
+                  onClick={exportPayInsCsv}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  Export
+                </button>
+              )}
               <button
                 onClick={() => setShowFilter(false)}
                 className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-200 transition-colors"
@@ -972,6 +1001,9 @@ export default function PayInList() {
               busy={actionBusyId === item.id}
               isAdmin={resolvedRole === "admin"}
               onDispute={raiseDispute}
+              canApprove={resolvedRole !== "admin" || can("approve_payins")}
+              canDecline={resolvedRole !== "admin" || can("reject_payins")}
+              canDispute={resolvedRole !== "admin" || can("create_disputes")}
             />
           ))
         )}

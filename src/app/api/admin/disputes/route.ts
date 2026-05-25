@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { RowDataPacket } from "mysql2/promise";
 import { pool } from "@/lib/db";
 import { isMissingDisputeStateColumn, sqlOnlyOpenDispute, sqlOnlyOpenDisputeLegacy } from "@/lib/dispute";
-import { requireAdminSession } from "@/lib/require-admin-api";
+import { requireAdminPermission } from "@/lib/require-admin-api";
 
 type DisputeRow = RowDataPacket & {
   id: number;
@@ -60,7 +60,7 @@ function formatDt(v: Date | string | null): string {
 }
 
 export async function GET(req: Request) {
-  const auth = await requireAdminSession();
+  const auth = await requireAdminPermission("view_disputes");
   if (!auth.ok) return auth.response;
 
   const { searchParams } = new URL(req.url);

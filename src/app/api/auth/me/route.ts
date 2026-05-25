@@ -24,6 +24,7 @@ export async function GET() {
         ok: true as const,
         role: "admin" as const,
         adminId: adminSess.adminId,
+        adminRole: adminSess.role,
       });
     }
   }

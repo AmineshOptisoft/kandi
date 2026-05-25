@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useRef, useState, useCallback } from "react";
+import React, { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -48,18 +48,18 @@ const adminSections: NavSection[] = [
     heading: "",
     sectionKey: "admin-main",
     items: [
-      { icon: <NavAdminDashboardIcon />,     name: "Dashboard",          path: "/" },
-      { icon: <NavVendorIcon />,             name: "Vendor",              path: "/agent" },
-      { icon: <NavCompaniesIcon />,          name: "Companies",          path: "/companies" },
-      { icon: <NavPayInIcon />,              name: "Pay In",             path: "/pay-in" },
-      { icon: <NavPayOutIcon />,             name: "Pay Out",            path: "/pay-out" },
-      { icon: <NavTransactionReportIcon />,  name: "Transaction Report", path: "/transaction-report" },
-      { icon: <NavDisputesIcon />,           name: "Disputes",           path: "/dispute" },
-      { icon: <NavSettlementLogIcon />,      name: "Settlement Log",     path: "/settlement-log" },
-      { icon: <NavSecurityLogIcon />,        name: "Security Log",       path: "/security-log" },
-      { icon: <NavLedgerIcon />,             name: "Ledger",             path: "/ledger" },
-      { icon: <NavLedgerIcon />,             name: "Interledger History", path: "/interledger-history" },
-      { icon: <NavNotificationsIcon />,      name: "Notifications",      path: "/notifications" },
+      { icon: <NavAdminDashboardIcon />, name: "Dashboard", path: "/" },
+      { icon: <NavVendorIcon />, name: "Vendor", path: "/agent" },
+      { icon: <NavCompaniesIcon />, name: "Companies", path: "/companies" },
+      { icon: <NavPayInIcon />, name: "Pay In", path: "/pay-in" },
+      { icon: <NavPayOutIcon />, name: "Pay Out", path: "/pay-out" },
+      { icon: <NavTransactionReportIcon />, name: "Transaction Report", path: "/transaction-report" },
+      { icon: <NavDisputesIcon />, name: "Disputes", path: "/dispute" },
+      { icon: <NavSettlementLogIcon />, name: "Settlement Log", path: "/settlement-log" },
+      { icon: <NavSecurityLogIcon />, name: "Security Log", path: "/security-log" },
+      { icon: <NavLedgerIcon />, name: "Ledger", path: "/ledger" },
+      { icon: <NavLedgerIcon />, name: "Interledger History", path: "/interledger-history" },
+      { icon: <NavNotificationsIcon />, name: "Notifications", path: "/notifications" },
     ],
   },
   {
@@ -77,8 +77,8 @@ const agentSections: NavSection[] = [
     sectionKey: "vendor-main",
     items: [
       { icon: <NavCompanyDashboardIcon />, name: "Dashboard", path: "/agent-dashboard" },
-      { icon: <NavPayInIcon />,            name: "Pay In",    path: "/pay-in" },
-      { icon: <NavPayOutIcon />,           name: "Pay Out",   path: "/pay-out" },
+      { icon: <NavPayInIcon />, name: "Pay In", path: "/pay-in" },
+      { icon: <NavPayOutIcon />, name: "Pay Out", path: "/pay-out" },
     ],
   },
   // {
@@ -109,12 +109,12 @@ const companySections: NavSection[] = [
     heading: "",
     sectionKey: "company-main",
     items: [
-      { icon: <NavCompanyDashboardIcon />, name: "Dashboard",     path: "/company-dashboard" },
-      { icon: <NavPayInIcon />,              name: "PayIn",         path: "/pay-in" },
-      { icon: <NavPayOutIcon />,             name: "PayOut",        path: "/pay-out" },
-      { icon: <NavReportsIcon />,            name: "Reports",       path: "/reports" },
-      { icon: <NavNotificationsIcon />,      name: "Notifications", path: "/notifications" },
-      { icon: <NavSettingsIcon />,           name: "Settings",      path: "/company-settings" },
+      { icon: <NavCompanyDashboardIcon />, name: "Dashboard", path: "/company-dashboard" },
+      { icon: <NavPayInIcon />, name: "PayIn", path: "/pay-in" },
+      { icon: <NavPayOutIcon />, name: "PayOut", path: "/pay-out" },
+      { icon: <NavReportsIcon />, name: "Reports", path: "/reports" },
+      { icon: <NavNotificationsIcon />, name: "Notifications", path: "/notifications" },
+      { icon: <NavSettingsIcon />, name: "Settings", path: "/company-settings" },
     ],
   },
 ];
@@ -211,8 +211,29 @@ const AppSidebar: React.FC = () => {
   const effectivePanel = lockedRole ?? panel;
   const homePath =
     effectivePanel === "agent" ? "/agent-dashboard" : effectivePanel === "company" ? "/company-dashboard" : "/";
-  const currentSections =
-    effectivePanel === "admin" ? adminSections : effectivePanel === "agent" ? agentSections : companySections;
+  const currentSections = useMemo((): NavSection[] => {
+    if (effectivePanel !== "admin") return effectivePanel === "agent" ? agentSections : companySections;
+
+    if (user?.adminRole === "SUPER_ADMIN") {
+      const baseMainItems = adminSections[0].items;
+      if (!baseMainItems.some((item) => item.path === "/admins")) {
+        return [
+          {
+            heading: "",
+            sectionKey: "admin-main",
+            items: [
+              ...baseMainItems.slice(0, 3), // Dashboard, Vendor, Companies
+              { icon: <NavVendorIcon />, name: "Admins", path: "/admins" },
+              // { icon: <NavSecurityLogIcon />, name: "Admin Activity Log", path: "/admin-activity-log" },
+              ...baseMainItems.slice(3), // Pay In, etc.
+            ] as NavItem[],
+          },
+          adminSections[1],
+        ];
+      }
+    }
+    return adminSections;
+  }, [effectivePanel, user?.adminRole]);
 
   /* Submenu state */
   const [openSubmenu, setOpenSubmenu] = useState<{ sectionKey: string; index: number } | null>(null);
@@ -265,11 +286,10 @@ const AppSidebar: React.FC = () => {
           {nav.subItems ? (
             <button
               onClick={() => handleSubmenuToggle(index, sectionKey)}
-              className={`menu-item group ${
-                openSubmenu?.sectionKey === sectionKey && openSubmenu?.index === index
+              className={`menu-item group ${openSubmenu?.sectionKey === sectionKey && openSubmenu?.index === index
                   ? "menu-item-active"
                   : "menu-item-inactive"
-              } cursor-pointer ${!isExpanded && !isHovered ? "lg:justify-center" : "lg:justify-start"}`}
+                } cursor-pointer ${!isExpanded && !isHovered ? "lg:justify-center" : "lg:justify-start"}`}
             >
               <span className={openSubmenu?.sectionKey === sectionKey && openSubmenu?.index === index ? "menu-item-icon-active" : "menu-item-icon-inactive"}>
                 {nav.icon}
@@ -279,11 +299,10 @@ const AppSidebar: React.FC = () => {
               )}
               {(isExpanded || isHovered || isMobileOpen) && (
                 <ChevronDownIcon
-                  className={`ml-auto w-5 h-5 transition-transform duration-200 ${
-                    openSubmenu?.sectionKey === sectionKey && openSubmenu?.index === index
+                  className={`ml-auto w-5 h-5 transition-transform duration-200 ${openSubmenu?.sectionKey === sectionKey && openSubmenu?.index === index
                       ? "rotate-180 text-brand-500"
                       : ""
-                  }`}
+                    }`}
                 />
               )}
             </button>
@@ -481,9 +500,8 @@ const AppSidebar: React.FC = () => {
             {currentSections.map((section) => (
               <div key={section.sectionKey}>
                 {section.heading && (
-                  <h2 className={`mb-4 text-xs uppercase flex leading-[20px] text-gray-400 ${
-                    !isExpanded && !isHovered ? "lg:justify-center" : "justify-start"
-                  }`}>
+                  <h2 className={`mb-4 text-xs uppercase flex leading-[20px] text-gray-400 ${!isExpanded && !isHovered ? "lg:justify-center" : "justify-start"
+                    }`}>
                     {showLabel ? section.heading : <HorizontaLDots />}
                   </h2>
                 )}

@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { useAdminPermissions } from "@/hooks/useAdminPermissions";
 import { Table, TableBody, TableCell, TableHeader, TableRow } from "../ui/table";
 import DateRangePicker, { type DateRange } from "../dashboard/DateRangePicker";
 import { LedgerIcon } from "@/icons/nav-icons";
@@ -44,6 +45,7 @@ function defaultLedgerDateRange(): DateRange {
 }
 
 export default function LedgerReport() {
+  const { can, loading: permLoading } = useAdminPermissions();
   const [dateRange, setDateRange] = useState<DateRange>(() => defaultLedgerDateRange());
   const [selectedAgentId, setSelectedAgentId] = useState<number | "ALL">("ALL");
   const [openAgentId, setOpenAgentId] = useState<number | null>(null);
@@ -103,6 +105,23 @@ export default function LedgerReport() {
   useEffect(() => {
     void fetchLedger();
   }, [fetchLedger]);
+
+  if (permLoading) {
+    return (
+      <div className="flex items-center justify-center p-12">
+        <div className="text-sm text-gray-500">Checking permissions...</div>
+      </div>
+    );
+  }
+
+  if (!can("view_ledger")) {
+    return (
+      <div className="flex flex-col items-center justify-center p-12 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800">
+        <h2 className="text-lg font-bold text-gray-900 dark:text-white">Access Denied</h2>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">You do not have permission to view ledger reports.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-4">

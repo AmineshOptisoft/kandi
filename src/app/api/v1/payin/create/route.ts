@@ -16,7 +16,9 @@ function parseCreateBody(body: Record<string, unknown>) {
         : NaN;
   const return_url = typeof body.return_url === "string" ? body.return_url.trim() : "";
   const note = typeof body.note === "string" ? body.note.trim() : "";
-  return { amount, return_url: return_url || null, note: note || null };
+  const methodRaw = typeof body.method === "string" ? body.method.trim().toUpperCase() : "";
+  const method: "UPI" | "BANK" = methodRaw === "BANK" ? "BANK" : "UPI";
+  return { amount, return_url: return_url || null, note: note || null, method };
 }
 
 export async function POST(req: Request) {

@@ -6,6 +6,7 @@ import Pagination from "../ui/Pagination";
 import { DisputesIcon } from "@/icons/nav-icons";
 import { csvExportTimestamp, downloadCsv } from "@/lib/csv-download";
 import { useTransactionRealtimeRefresh } from "@/hooks/useTransactionRealtimeRefresh";
+import { useAdminPermissions } from "@/hooks/useAdminPermissions";
 
 
 const PAGE_SIZE = 5;
@@ -94,11 +95,12 @@ function ChevronBtn({ rotated, onClick }: { rotated: boolean; onClick: () => voi
 }
 
 function DisputeCard({ item, onReload }: { item: DisputeItem; onReload: () => void }) {
+  const { can } = useAdminPermissions();
   const [extraOpen, setExtraOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [busy, setBusy] = useState(false);
 
-  const canResolve = item.disputeStatus === "PENDING";
+  const canResolve = item.disputeStatus === "PENDING" && can("resolve_disputes");
 
   async function patchDisputeState(next: "RESOLVED" | "OTHER") {
     setBusy(true);
@@ -235,6 +237,7 @@ function DisputeCard({ item, onReload }: { item: DisputeItem; onReload: () => vo
 }
 
 export default function DisputeList() {
+  const { can, loading: permLoading } = useAdminPermissions();
   const [items, setItems] = useState<DisputeItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -344,6 +347,23 @@ export default function DisputeList() {
     ]);
     downloadCsv(`disputes-${csvExportTimestamp()}.csv`, [headers, ...rows]);
   }, [filtered]);
+
+  if (permLoading) {
+    return (
+      <div className="flex items-center justify-center p-12">
+        <div className="text-sm text-gray-500">Checking permissions...</div>
+      </div>
+    );
+  }
+
+  if (!can("view_disputes")) {
+    return (
+      <div className="flex flex-col items-center justify-center p-12 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800">
+        <h2 className="text-lg font-bold text-gray-900 dark:text-white">Access Denied</h2>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">You do not have permission to view disputes.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-4">

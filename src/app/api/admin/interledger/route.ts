@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { pool } from "@/lib/db";
-import { requireAdminSession } from "@/lib/require-admin-api";
+import { requireAdminPermission } from "@/lib/require-admin-api";
 import type { ResultSetHeader } from "mysql2/promise";
 
 export async function POST(req: Request) {
-  const auth = await requireAdminSession();
+  const auth = await requireAdminPermission("create_security_deposits");
   if (!auth.ok) return auth.response;
 
   let body: Record<string, unknown>;
