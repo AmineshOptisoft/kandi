@@ -1,6 +1,6 @@
 "use client";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import type { AgentPayInListItem } from "@/lib/agent-transactions-map";
+import type { AgentPayInListItem, AgentPayInUiStatus } from "@/lib/agent-transactions-map";
 import DateRangePicker, { DateRange } from "../dashboard/DateRangePicker";
 import Pagination from "../ui/Pagination";
 import { Modal } from "../ui/modal";
@@ -19,7 +19,7 @@ const PAGE_SIZE = 10;
 const MAX_PROOF_BYTES = 5 * 1024 * 1024;
 const UTR_12_DIGIT_REGEX = /^\d{12,22}$/; // IMPS=12, UPI=12, NEFT RRN=16, RTGS=22;
 
-type PayInStatus = "PENDING" | "APPROVED" | "EXPIRED" | "RECEIPT_PENDING" | "UNASSIGNED" | "PROCESSING" | "EXPIRED_APPROVED_BY_ADMIN" | "EXPIRED_APPROVED_BY_AGENT" | "DECLINED";
+type PayInStatus = AgentPayInUiStatus;
 
 type PayInItem = AgentPayInListItem;
 

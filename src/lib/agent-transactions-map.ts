@@ -1,11 +1,22 @@
 import type { RowDataPacket } from "mysql2/promise";
 
+export type AgentPayInUiStatus =
+  | "PENDING"
+  | "APPROVED"
+  | "EXPIRED"
+  | "RECEIPT_PENDING"
+  | "UNASSIGNED"
+  | "PROCESSING"
+  | "EXPIRED_APPROVED_BY_ADMIN"
+  | "EXPIRED_APPROVED_BY_AGENT"
+  | "DECLINED";
+
 /** Mirrors PayInList `PayInItem` UI shape */
 export type AgentPayInListItem = {
   id: string;
   ref: string;
   amount: number;
-  status: "PENDING" | "APPROVED" | "EXPIRED" | "RECEIPT_PENDING" | "UNASSIGNED" | "PROCESSING" | "EXPIRED_APPROVED_BY_ADMIN" | "EXPIRED_APPROVED_BY_AGENT" | "DECLINED";
+  status: AgentPayInUiStatus;
   orderId: string;
   clientName: string;
   clientId?: string;
