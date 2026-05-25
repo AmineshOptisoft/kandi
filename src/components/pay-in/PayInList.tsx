@@ -35,7 +35,7 @@ const STATUS_TABS: { label: string; value: PayInStatus | "ALL" }[] = [
   { label: "Exp. Approved (Agent)", value: "EXPIRED_APPROVED_BY_AGENT" },
 ];
 
-const statusStyle: Record<PayInStatus, string> = {
+const statusStyle: Record<string, string> = {
   PENDING: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
   APPROVED: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300",
   EXPIRED: "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400",

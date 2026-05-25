@@ -27,7 +27,7 @@ const cards: SummaryCard[] = [
   { title: "Success Rate", value: "0%", sub: "Completion Rate" },
 ];
 
-const statusStyles: Record<TxnRow["status"], string> = {
+const statusStyles: Record<string, string> = {
   EXPIRED: "bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400",
   APPROVED: "bg-green-50 text-green-600 dark:bg-green-900/20 dark:text-green-400",
   PENDING: "bg-yellow-50 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-300",

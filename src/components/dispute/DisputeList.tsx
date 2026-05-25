@@ -42,14 +42,14 @@ const STATUS_TABS: { label: string; value: DisputeStatus | "ALL" }[] = [
 
 const STATUS_FILTER_OPTIONS = ["All", "PENDING", "RESOLVED", "OTHER", "EXPIRED"];
 
-const disputeStatusStyle: Record<DisputeStatus, string> = {
+const disputeStatusStyle: Record<string, string> = {
   PENDING: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
   RESOLVED: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-500",
   EXPIRED: "bg-red-100 text-red-500 dark:bg-red-900/30 dark:text-red-400",
   OTHER: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
 };
 
-const paymentStatusStyle: Record<PaymentStatus, string> = {
+const paymentStatusStyle: Record<string, string> = {
   PAYIN_APPROVED: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
   PAYIN_PENDING: "bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400",
   PAYOUT_APPROVED: "bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400",
@@ -57,7 +57,7 @@ const paymentStatusStyle: Record<PaymentStatus, string> = {
   FAILED: "bg-red-100 text-red-500 dark:bg-red-900/30 dark:text-red-400",
 };
 
-const paymentStatusLabel: Record<PaymentStatus, string> = {
+const paymentStatusLabel: Record<string, string> = {
   PAYIN_APPROVED: "PAYIN APPROVED",
   PAYIN_PENDING: "PAYIN PENDING",
   PAYOUT_APPROVED: "PAYOUT APPROVED",
@@ -65,7 +65,7 @@ const paymentStatusLabel: Record<PaymentStatus, string> = {
   FAILED: "FAILED",
 };
 
-const disputeStatusLabel: Record<DisputeStatus, string> = {
+const disputeStatusLabel: Record<string, string> = {
   PENDING: "DISPUTE PENDING",
   RESOLVED: "DISPUTE RESOLVED",
   EXPIRED: "DISPUTE EXPIRED",
